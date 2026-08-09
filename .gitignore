@@ -1,0 +1,75 @@
+# ============================================
+# HypeCinema - Comprehensive .gitignore
+# ============================================
+
+# --- Markdown Documentation ---
+*.md
+!prompts.md
+!README.md
+
+# --- Node.js / React Frontend ---
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+build/
+.vite/
+frontend/.vite/
+.eslintcache
+.cache/
+
+# --- Logs & Environment ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Java / Spring Boot / Maven ---
+target/
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+.mvn/
+!.mvn/wrapper/
+
+# --- Database & Storage ---
+*.db
+*.sqlite
+*.sqlite3
+h2-data/
+backend/h2-data/
+uploads/
+frontend/public/uploads/
+
+# --- IDEs & Editors ---
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+.classpath
+.project
+.settings/
+
+# --- Operating System ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
