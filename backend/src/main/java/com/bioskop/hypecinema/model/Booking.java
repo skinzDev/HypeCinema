@@ -53,6 +53,18 @@ public class Booking {
     @Column(unique = true, length = 100)
     private String bookingCode;
 
+    /** Poeni zarađeni ovom rezervacijom */
+    @Column(nullable = false)
+    private Integer pointsEarned = 0;
+
+    /** Poeni iskorišćeni za popust na ovu rezervaciju */
+    @Column(nullable = false)
+    private Integer pointsRedeemed = 0;
+
+    /** Iznos popusta ostvaren preko poena lojalnosti */
+    @Column(precision = 10, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

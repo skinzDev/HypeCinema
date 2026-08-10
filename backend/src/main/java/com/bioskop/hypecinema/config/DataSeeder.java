@@ -37,6 +37,8 @@ public class DataSeeder {
                 admin.setFirstName("Admin");
                 admin.setLastName("HypeCinema");
                 admin.setRole(Role.ROLE_ADMIN);
+                admin.setLoyaltyPoints(500);
+                admin.setTier("GOLD");
                 userRepo.save(admin);
 
                 User user = new User();
@@ -46,6 +48,8 @@ public class DataSeeder {
                 user.setFirstName("Marko");
                 user.setLastName("Petrović");
                 user.setRole(Role.ROLE_USER);
+                user.setLoyaltyPoints(120);
+                user.setTier("SILVER");
                 userRepo.save(user);
 
                 System.out.println("✓ Kreirani korisnici (admin / korisnik)");

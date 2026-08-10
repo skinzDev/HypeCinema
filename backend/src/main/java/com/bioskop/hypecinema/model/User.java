@@ -43,6 +43,14 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role = Role.ROLE_USER;
 
+    /** Poeni lojalnosti zarađeni kupovinom karata */
+    @Column(nullable = false)
+    private Integer loyaltyPoints = 0;
+
+    /** Rang korisnika u sistemu nagrađivanja (BRONZE, SILVER, GOLD) */
+    @Column(nullable = false, length = 20)
+    private String tier = "BRONZE";
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

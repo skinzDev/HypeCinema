@@ -4,8 +4,8 @@
 
 # --- Markdown Documentation ---
 *.md
-!prompts.md
 !README.md
+
 
 # --- Node.js / React Frontend ---
 node_modules/
