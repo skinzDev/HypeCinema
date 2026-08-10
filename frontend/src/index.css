@@ -240,7 +240,7 @@ ul, ol {
 .sidebar-nav-item.active::before {
   content: '';
   position: absolute;
-  left: -14px;
+  left: -10px;
   width: 3px;
   height: 20px;
   background: var(--color-accent-primary);
@@ -248,8 +248,8 @@ ul, ol {
 }
 
 .sidebar-nav-item svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   stroke-width: 1.8;
 }
 
@@ -338,9 +338,9 @@ ul, ol {
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(10, 10, 12, 0.95) 0%,
-    rgba(10, 10, 12, 0.5) 40%,
-    rgba(10, 10, 12, 0.2) 70%,
+    rgba(9, 9, 11, 0.95) 0%,
+    rgba(9, 9, 11, 0.5) 40%,
+    rgba(9, 9, 11, 0.2) 70%,
     transparent 100%
   );
 }
@@ -384,7 +384,6 @@ ul, ol {
   text-transform: uppercase;
 }
 
-/* Floating hero slider controls in bottom-right corner */
 .hero-controls {
   position: absolute;
   bottom: var(--space-6);
@@ -392,7 +391,7 @@ ul, ol {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  background: rgba(10, 10, 12, 0.65);
+  background: rgba(9, 9, 11, 0.65);
   backdrop-filter: blur(12px);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
@@ -420,7 +419,6 @@ ul, ol {
   color: white;
 }
 
-/* Hero Dots */
 .hero-dots {
   display: flex;
   align-items: center;
@@ -545,8 +543,34 @@ ul, ol {
   transition: var(--transition-slow);
 }
 
+.movie-card-placeholder,
+.hero-slide-placeholder {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, #1c1c22 0%, #111115 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  color: var(--color-text-tertiary);
+}
+
+.placeholder-icon {
+  opacity: 0.4;
+  color: var(--color-text-secondary);
+}
+
+.placeholder-title {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-align: center;
+  font-weight: 500;
+}
+
 .movie-card:hover .movie-card-image {
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .movie-card-overlay {
@@ -554,8 +578,8 @@ ul, ol {
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(10, 10, 12, 0.9) 0%,
-    rgba(10, 10, 12, 0.3) 40%,
+    rgba(9, 9, 11, 0.9) 0%,
+    rgba(9, 9, 11, 0.3) 40%,
     transparent 70%
   );
   opacity: 0;
@@ -621,7 +645,6 @@ ul, ol {
   font-weight: 500;
 }
 
-/* Persistent bottom info (always visible) */
 .movie-card-bottom {
   position: absolute;
   bottom: 0;
@@ -630,7 +653,7 @@ ul, ol {
   padding: var(--space-4) var(--space-4) var(--space-3);
   background: linear-gradient(
     to top,
-    rgba(10, 10, 12, 0.85) 0%,
+    rgba(9, 9, 11, 0.85) 0%,
     transparent 100%
   );
 }
@@ -645,18 +668,17 @@ ul, ol {
   text-overflow: ellipsis;
 }
 
-/* --- Hero Actions --- */
 .hero-actions {
   display: flex;
   gap: var(--space-3);
   margin-top: var(--space-5);
 }
 
-/* --- Movie Card Duration --- */
 .movie-card-duration {
   display: flex;
   align-items: center;
   gap: 3px;
+  font-family: var(--font-mono);
 }
 
 /* --- Button Component --- */
@@ -720,19 +742,13 @@ ul, ol {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: var(--space-4);
-  animation: modalFadeIn 200ms ease-out;
-}
-
-@keyframes modalFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 .modal-content {
@@ -741,12 +757,6 @@ ul, ol {
   border-radius: var(--radius-xl);
   width: 100%;
   box-shadow: var(--shadow-xl);
-  animation: modalSlideUp 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes modalSlideUp {
-  from { opacity: 0; transform: translateY(20px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .modal-header {
@@ -828,7 +838,6 @@ ul, ol {
 
 .input-field-input:focus {
   border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
 }
 
 .input-field--error .input-field-input {
@@ -958,13 +967,11 @@ ul, ol {
    Movie Details Page
    ============================================ */
 
-/* ── Page container ── */
 .md-page {
   max-width: 1100px;
   margin: 0 auto;
 }
 
-/* ── Back button ── */
 .md-back {
   display: inline-flex;
   align-items: center;
@@ -983,7 +990,6 @@ ul, ol {
   background: var(--color-bg-glass);
 }
 
-/* ── Not found ── */
 .md-not-found {
   text-align: center;
   padding: var(--space-20) var(--space-8);
@@ -1000,7 +1006,6 @@ ul, ol {
   margin-bottom: var(--space-8);
 }
 
-/* ── Hero Section ── */
 .md-hero {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -1008,7 +1013,6 @@ ul, ol {
   margin-bottom: var(--space-12);
 }
 
-/* ── Poster ── */
 .md-poster-wrapper {
   position: relative;
   border-radius: var(--radius-lg);
@@ -1035,7 +1039,6 @@ ul, ol {
   pointer-events: none;
 }
 
-/* ── Info Panel ── */
 .md-info {
   display: flex;
   flex-direction: column;
@@ -1049,7 +1052,6 @@ ul, ol {
   gap: var(--space-4);
 }
 
-/* Status Badge */
 .md-status {
   padding: var(--space-1) var(--space-4);
   font-size: var(--text-xs);
@@ -1071,7 +1073,6 @@ ul, ol {
   border: 1px solid rgba(255, 180, 0, 0.3);
 }
 
-/* Rating Badge */
 .md-rating-badge {
   display: inline-flex;
   align-items: center;
@@ -1090,7 +1091,6 @@ ul, ol {
   fill: var(--color-accent-gold);
 }
 
-/* Title */
 .md-title {
   font-family: var(--font-display);
   font-size: var(--text-4xl);
@@ -1099,7 +1099,6 @@ ul, ol {
   letter-spacing: -1px;
 }
 
-/* Meta info row */
 .md-meta {
   display: flex;
   align-items: center;
@@ -1120,7 +1119,6 @@ ul, ol {
   font-size: var(--text-lg);
 }
 
-/* Description */
 .md-description {
   color: var(--color-text-secondary);
   font-size: var(--text-base);
@@ -1128,7 +1126,6 @@ ul, ol {
   max-width: 640px;
 }
 
-/* Crew (Director & Cast) */
 .md-crew {
   display: flex;
   flex-direction: column;
@@ -1159,14 +1156,12 @@ ul, ol {
   color: var(--color-text-primary);
 }
 
-/* Actions */
 .md-actions {
   display: flex;
   gap: var(--space-4);
   padding-top: var(--space-2);
 }
 
-/* ── Screenings Section ── */
 .md-screenings {
   margin-top: var(--space-4);
   padding-top: var(--space-8);
@@ -1187,7 +1182,6 @@ ul, ol {
   color: var(--color-accent-primary);
 }
 
-/* No screenings */
 .md-no-screenings {
   text-align: center;
   padding: var(--space-12) var(--space-8);
@@ -1197,7 +1191,6 @@ ul, ol {
   color: var(--color-text-tertiary);
 }
 
-/* ── Date Selector ── */
 .md-date-selector {
   display: flex;
   gap: var(--space-3);
@@ -1254,7 +1247,6 @@ ul, ol {
   color: var(--color-text-primary);
 }
 
-/* ── Screening Cards ── */
 .md-screening-list {
   display: flex;
   flex-direction: column;
@@ -1280,7 +1272,6 @@ ul, ol {
   box-shadow: var(--shadow-md);
 }
 
-/* Time */
 .md-screening-time {
   display: flex;
   align-items: center;
@@ -1295,7 +1286,6 @@ ul, ol {
   letter-spacing: -0.03em;
 }
 
-/* Details (Hall + Seats) */
 .md-screening-details {
   display: flex;
   flex-direction: column;
@@ -1317,7 +1307,6 @@ ul, ol {
   flex-shrink: 0;
 }
 
-/* Price */
 .md-screening-price {
   text-align: right;
 }
@@ -1329,135 +1318,33 @@ ul, ol {
   color: var(--color-text-primary);
 }
 
-/* --- Utility Classes --- */
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.items-center { align-items: center; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.gap-2 { gap: var(--space-2); }
-.gap-4 { gap: var(--space-4); }
-.gap-6 { gap: var(--space-6); }
-.text-center { text-align: center; }
-.text-muted { color: var(--color-text-secondary); }
-.font-display { font-family: var(--font-display); }
-
 /* --- Responsive --- */
 @media (max-width: 768px) {
-  .sidebar {
-    width: 56px;
-  }
-
-  .main-content {
-    margin-left: 56px;
-    padding: var(--space-4);
-  }
-
-  .hero-carousel {
-    height: 280px;
-    border-radius: var(--radius-lg);
-  }
-
-  .hero-title {
-    font-size: var(--text-2xl);
-  }
-
-  .hero-slide-content {
-    bottom: var(--space-6);
-    left: var(--space-6);
-    right: var(--space-6);
-  }
-
-  .hero-actions {
-    flex-direction: column;
-  }
-
-  .movies-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: var(--space-4);
-  }
-
-  .filter-bar {
-    gap: var(--space-2);
-  }
-
-  .filter-pill {
-    padding: var(--space-2) var(--space-4);
-    font-size: var(--text-xs);
-  }
-
-  .auth-form-row {
-    grid-template-columns: 1fr;
-  }
-
-  /* Movie Details responsive */
-  .md-hero {
-    grid-template-columns: 220px 1fr;
-    gap: var(--space-6);
-  }
-
-  .md-title {
-    font-size: var(--text-2xl);
-  }
-
-  .md-actions {
-    flex-direction: column;
-  }
-
-  .md-screening-card {
-    grid-template-columns: 60px 1fr;
-    gap: var(--space-3);
-  }
-
-  .md-screening-price,
-  .md-screening-card .btn {
-    grid-column: 1 / -1;
-  }
+  .sidebar { width: 56px; }
+  .main-content { margin-left: 56px; padding: var(--space-4); }
+  .hero-carousel { height: 280px; border-radius: var(--radius-lg); }
+  .hero-title { font-size: var(--text-2xl); }
+  .hero-slide-content { bottom: var(--space-6); left: var(--space-6); right: var(--space-6); }
+  .hero-actions { flex-direction: column; }
+  .movies-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-4); }
+  .filter-bar { gap: var(--space-2); }
+  .auth-form-row { grid-template-columns: 1fr; }
+  .md-hero { grid-template-columns: 220px 1fr; gap: var(--space-6); }
+  .md-title { font-size: var(--text-2xl); }
+  .md-actions { flex-direction: column; }
+  .md-screening-card { grid-template-columns: 60px 1fr; gap: var(--space-3); }
+  .md-screening-price, .md-screening-card .btn { grid-column: 1 / -1; }
 }
 
 @media (max-width: 480px) {
-  .movies-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-3);
-  }
-
-  .hero-carousel {
-    height: 220px;
-  }
-
-  .hero-title {
-    font-size: var(--text-xl);
-  }
-
-  .md-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .md-poster-wrapper {
-    max-width: 240px;
-    margin: 0 auto;
-  }
-
-  .md-title {
-    font-size: var(--text-xl);
-    text-align: center;
-  }
-
-  .md-info {
-    align-items: center;
-    text-align: center;
-  }
-
-  .md-meta {
-    justify-content: center;
-  }
-
-  .md-description {
-    text-align: center;
-  }
-
-  .md-actions {
-    justify-content: center;
-  }
+  .movies-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+  .hero-carousel { height: 220px; }
+  .hero-title { font-size: var(--text-xl); }
+  .md-hero { grid-template-columns: 1fr; }
+  .md-poster-wrapper { max-width: 240px; margin: 0 auto; }
+  .md-title { font-size: var(--text-xl); text-align: center; }
+  .md-info { align-items: center; text-align: center; }
+  .md-meta { justify-content: center; }
+  .md-description { text-align: center; }
+  .md-actions { justify-content: center; }
 }
-

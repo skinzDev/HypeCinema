@@ -1,252 +1,211 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  MapPin,
-  CalendarDays,
-  SlidersHorizontal,
   Star,
   Clock,
-  Play,
+  Film,
+  Calendar,
+  MapPin,
+  ChevronDown,
+  Ticket,
 } from 'lucide-react'
-import Button from '../components/Button'
 import { moviesData } from '../data/movies'
-
-/* ── Hero carousel data ── */
-const heroSlides = [
-  {
-    id: 1,
-    title: 'Spider-Man:\nBrand New Day',
-    subtitle: 'Ekskluzivno u bioskopima · Jul 31, 2026',
-    badge: 'Premijera',
-    image: '/posters/spiderman.png',
-    genre: 'Akcija / Avantura',
-  },
-  {
-    id: 2,
-    title: 'Dune:\nPart Three',
-    subtitle: 'Novo poglavlje epske sage · Avg 2026',
-    badge: 'Uskoro',
-    image: '/posters/dune.png',
-    genre: 'Sci-Fi / Drama',
-  },
-  {
-    id: 3,
-    title: 'The Batman:\nPart II',
-    subtitle: 'Povratak Viteza Tame · Sep 2026',
-    badge: 'Uskoro',
-    image: '/posters/batman.png',
-    genre: 'Triler / Akcija',
-  },
-]
+import Button from '../components/Button'
 
 export default function HomePage() {
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [activeFilter, setActiveFilter] = useState('all')
   const navigate = useNavigate()
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [selectedCinema, setSelectedCinema] = useState('ALL')
+  const [selectedDate, setSelectedDate] = useState('TODAY')
+  const [imgErrors, setImgErrors] = useState({})
 
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
-  }, [])
+  const heroMovies = moviesData.slice(0, 3)
 
-  const prevSlide = useCallback(() => {
-    setCurrentSlide(
-      (prev) => (prev - 1 + heroSlides.length) % heroSlides.length
-    )
-  }, [])
-
-  /* Auto-advance carousel */
   useEffect(() => {
-    const timer = setInterval(nextSlide, 6000)
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroMovies.length)
+    }, 5000)
     return () => clearInterval(timer)
-  }, [nextSlide])
+  }, [heroMovies.length])
 
-  /* Filter movies */
-  const filteredMovies =
-    activeFilter === 'all'
-      ? moviesData
-      : moviesData.filter(
-          (m) => m.genre.toLowerCase() === activeFilter.toLowerCase()
-        )
-
-  const genres = ['all', ...new Set(moviesData.map((m) => m.genre))]
-
-  const formatDuration = (mins) => {
-    const h = Math.floor(mins / 60)
-    const m = mins % 60
-    return `${h}h ${m}min`
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroMovies.length)
   }
 
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + heroMovies.length) % heroMovies.length)
+  }
+
+  const handleImgError = (id) => {
+    setImgErrors((prev) => ({ ...prev, [id]: true }))
+  }
+
+  const cinemaLocations = [
+    { value: 'ALL', label: 'Sve lokacije bioskopa' },
+    { value: 'BEOGRAD', label: 'Beograd - Hype Galerija' },
+    { value: 'NOVI_SAD', label: 'Novi Sad - Hype Promenada' },
+    { value: 'NIS', label: 'Niš - Hype Delta' },
+    { value: 'KRAGUJEVAC', label: 'Kragujevac - Hype Plaza' },
+  ]
+
+  const dateOptions = [
+    { value: 'TODAY', label: 'Danas (11. Avgust)' },
+    { value: 'TOMORROW', label: 'Sutra (12. Avgust)' },
+    { value: 'DAY3', label: 'Sreda (13. Avgust)' },
+    { value: 'DAY4', label: 'Četvrtak (14. Avgust)' },
+  ]
+
   return (
-    <>
-      {/* ── Hero Carousel ── */}
-      <section className="hero-carousel" id="hero-carousel">
-        {heroSlides.map((slide, idx) => (
+    <div className="home-page">
+      {/* Hero Carousel */}
+      <section className="hero-carousel">
+        {heroMovies.map((movie, index) => (
           <div
-            key={slide.id}
-            className={`hero-slide ${idx === currentSlide ? 'active' : ''}`}
+            key={movie.id}
+            className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
           >
-            <img
-              className="hero-slide-image"
-              src={slide.image}
-              alt={slide.title}
-              loading={idx === 0 ? 'eager' : 'lazy'}
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1200&auto=format&fit=crop'
-              }}
-            />
+            {!imgErrors[`hero-${movie.id}`] ? (
+              <img
+                src={movie.poster}
+                alt={movie.title}
+                className="hero-slide-image"
+                onError={() => handleImgError(`hero-${movie.id}`)}
+              />
+            ) : (
+              <div className="hero-slide-placeholder">
+                <Film size={64} className="placeholder-icon" />
+              </div>
+            )}
             <div className="hero-slide-overlay" />
             <div className="hero-slide-content">
-              <span className="hero-badge">{slide.badge}</span>
-              <h1 className="hero-title">
-                {slide.title.split('\n').map((line, i) => (
-                  <span key={i}>
-                    {line}
-                    {i === 0 && <br />}
-                  </span>
-                ))}
-              </h1>
-              <p className="hero-subtitle">{slide.subtitle}</p>
+              <span className="hero-badge">NAJPOPULARNIJE</span>
+              <h1 className="hero-title">{movie.title}</h1>
+              <p className="hero-subtitle">Ekskluzivno u bioskopima · Jul 31, 2026</p>
               <div className="hero-actions">
-                <Button variant="primary" onClick={() => navigate(`/movies/${slide.id}`)}>
-                  <Play size={16} />
-                  Kupi Kartu
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => navigate(`/movies/${movie.id}`)}
+                >
+                  <Ticket size={18} /> Kupi kartu
                 </Button>
-                <Button variant="secondary" onClick={() => navigate(`/movies/${slide.id}`)}>
-                  Detaljnije
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => navigate(`/movies/${movie.id}`)}
+                >
+                  Detalji filma
                 </Button>
               </div>
             </div>
           </div>
         ))}
 
-        {/* Floating carousel controls in bottom-right corner */}
         <div className="hero-controls">
-          <button
-            className="hero-arrow"
-            onClick={prevSlide}
-            aria-label="Prethodni film"
-          >
-            <ChevronLeft size={18} />
+          <button className="hero-arrow" onClick={prevSlide} aria-label="Prethodni film">
+            <ChevronLeft size={20} />
           </button>
           <div className="hero-dots">
-            {heroSlides.map((_, idx) => (
-              <button
+            {heroMovies.map((_, idx) => (
+              <span
                 key={idx}
                 className={`hero-dot ${idx === currentSlide ? 'active' : ''}`}
                 onClick={() => setCurrentSlide(idx)}
-                aria-label={`Slajd ${idx + 1}`}
               />
             ))}
           </div>
-          <button
-            className="hero-arrow"
-            onClick={nextSlide}
-            aria-label="Sledeći film"
-          >
-            <ChevronRight size={18} />
+          <button className="hero-arrow" onClick={nextSlide} aria-label="Sledeći film">
+            <ChevronRight size={20} />
           </button>
         </div>
       </section>
 
-      {/* ── Filter Bar ── */}
-      <div className="filter-bar" id="filter-bar">
-        {/* Bioskop Lokacija Dropdown */}
-        <div className="filter-dropdown-wrapper">
+      {/* Filter Bar - Exactly 2 Dropdowns: Cinema & Date */}
+      <section className="filter-bar">
+        {/* Dropdown 1: Odabir Bioskopa (Grad) */}
+        <div className={`filter-dropdown-wrapper ${selectedCinema !== 'ALL' ? 'active' : ''}`}>
           <MapPin size={16} className="filter-icon" />
-          <select className="filter-select" defaultValue="beograd">
-            <option value="beograd">Bioskop Beograd (Galerija)</option>
-            <option value="novisad">Bioskop Novi Sad (Promenada)</option>
-            <option value="nis">Bioskop Niš (Delta Planet)</option>
-            <option value="kragujevac">Bioskop Kragujevac (Big)</option>
-          </select>
-          <ChevronDown className="filter-chevron" size={14} />
-        </div>
-
-        {/* Datum Dropdown */}
-        <div className="filter-dropdown-wrapper">
-          <CalendarDays size={16} className="filter-icon" />
-          <select className="filter-select" defaultValue="today">
-            <option value="today">Danas (Danas)</option>
-            <option value="tomorrow">Sutra</option>
-            <option value="weekend">Ovaj vikend</option>
-            <option value="nextweek">Sledeća nedelja</option>
-          </select>
-          <ChevronDown className="filter-chevron" size={14} />
-        </div>
-
-        {/* Žanr Single Dropdown Box */}
-        <div className="filter-dropdown-wrapper active">
-          <SlidersHorizontal size={16} className="filter-icon" />
           <select
+            value={selectedCinema}
+            onChange={(e) => setSelectedCinema(e.target.value)}
             className="filter-select"
-            value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
           >
-            <option value="all">Svi žanrovi</option>
-            {genres
-              .filter((g) => g !== 'all')
-              .map((genre) => (
-                <option key={genre} value={genre}>
-                  Žanr: {genre}
-                </option>
-              ))}
+            {cinemaLocations.map((loc) => (
+              <option key={loc.value} value={loc.value}>
+                {loc.label}
+              </option>
+            ))}
           </select>
-          <ChevronDown className="filter-chevron" size={14} />
+          <ChevronDown size={14} className="filter-chevron" />
         </div>
-      </div>
 
-      {/* ── Movie Grid ── */}
-      <section id="movies-grid">
-        <h2 className="movies-section-title">
-          {activeFilter === 'all' ? 'Trenutno u bioskopima' : `Žanr: ${activeFilter}`}
-        </h2>
+        {/* Dropdown 2: Odabir Datuma */}
+        <div className="filter-dropdown-wrapper">
+          <Calendar size={16} className="filter-icon" />
+          <select
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="filter-select"
+          >
+            {dateOptions.map((date) => (
+              <option key={date.value} value={date.value}>
+                {date.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={14} className="filter-chevron" />
+        </div>
+      </section>
+
+      {/* Movies Grid */}
+      <section className="movies-grid-section">
+        <h2 className="movies-section-title">Trenutno na repertoaru</h2>
+
         <div className="movies-grid">
-          {filteredMovies.map((movie) => (
-            <article
+          {moviesData.map((movie) => (
+            <div
               key={movie.id}
               className="movie-card"
               onClick={() => navigate(`/movies/${movie.id}`)}
             >
-              <img
-                className="movie-card-image"
-                src={movie.poster}
-                alt={movie.title}
-                loading="lazy"
-                onError={(e) => {
-                  e.target.onerror = null
-                  e.target.src = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop'
-                }}
-              />
+              {!imgErrors[movie.id] ? (
+                <img
+                  src={movie.poster}
+                  alt={movie.title}
+                  className="movie-card-image"
+                  onError={() => handleImgError(movie.id)}
+                />
+              ) : (
+                <div className="movie-card-placeholder">
+                  <Film size={36} className="placeholder-icon" />
+                  <span className="placeholder-title">{movie.title}</span>
+                </div>
+              )}
 
-              {/* Hover overlay info */}
               <div className="movie-card-overlay" />
+              
+              <div className="movie-card-bottom">
+                <h3 className="movie-card-bottom-title">{movie.title}</h3>
+              </div>
+
               <div className="movie-card-info">
                 <h3 className="movie-card-title">{movie.title}</h3>
                 <div className="movie-card-meta">
                   <span className="movie-card-rating">
-                    <Star size={12} />
-                    {movie.rating}
-                  </span>
-                  <span className="movie-card-duration">
-                    <Clock size={11} />
-                    {formatDuration(movie.duration)}
+                    <Star size={12} /> {movie.rating}
                   </span>
                   <span className="movie-card-genre">{movie.genre}</span>
+                  <span className="movie-card-duration">
+                    <Clock size={12} /> {movie.duration}m
+                  </span>
                 </div>
               </div>
-
-              {/* Bottom persistent title */}
-              <div className="movie-card-bottom">
-                <p className="movie-card-bottom-title">{movie.title}</p>
-              </div>
-            </article>
+            </div>
           ))}
         </div>
       </section>
-    </>
+    </div>
   )
 }

@@ -126,66 +126,46 @@ export const moviesData = [
   },
 ]
 
-/**
- * Mock screening data for movies.
- * Each screening includes hall info, date/time, and ticket price.
- */
 export const screeningsData = [
-  // Spider-Man screenings
   { id: 1, movieId: 1, hall: 'Sala 1 - IMAX', date: '2026-08-11', time: '14:00', price: 900, seatsAvailable: 87 },
   { id: 2, movieId: 1, hall: 'Sala 2 - Standard', date: '2026-08-11', time: '17:00', price: 700, seatsAvailable: 52 },
   { id: 3, movieId: 1, hall: 'Sala 3 - VIP', date: '2026-08-11', time: '20:00', price: 1200, seatsAvailable: 18 },
   { id: 4, movieId: 1, hall: 'Sala 1 - IMAX', date: '2026-08-12', time: '14:00', price: 900, seatsAvailable: 120 },
   { id: 5, movieId: 1, hall: 'Sala 2 - Standard', date: '2026-08-12', time: '20:30', price: 700, seatsAvailable: 96 },
 
-  // Dune screenings
   { id: 6, movieId: 2, hall: 'Sala 1 - IMAX', date: '2026-08-11', time: '15:00', price: 900, seatsAvailable: 65 },
   { id: 7, movieId: 2, hall: 'Sala 3 - VIP', date: '2026-08-11', time: '19:30', price: 1200, seatsAvailable: 12 },
   { id: 8, movieId: 2, hall: 'Sala 1 - IMAX', date: '2026-08-12', time: '16:00', price: 900, seatsAvailable: 145 },
   { id: 9, movieId: 2, hall: 'Sala 2 - Standard', date: '2026-08-12', time: '21:00', price: 700, seatsAvailable: 80 },
 
-  // Batman screenings
   { id: 10, movieId: 3, hall: 'Sala 1 - IMAX', date: '2026-09-20', time: '18:00', price: 900, seatsAvailable: 150 },
   { id: 11, movieId: 3, hall: 'Sala 3 - VIP', date: '2026-09-20', time: '21:00', price: 1200, seatsAvailable: 40 },
 
-  // Oppenheimer screenings
   { id: 12, movieId: 4, hall: 'Sala 2 - Standard', date: '2026-08-11', time: '13:00', price: 700, seatsAvailable: 44 },
   { id: 13, movieId: 4, hall: 'Sala 1 - IMAX', date: '2026-08-11', time: '19:00', price: 900, seatsAvailable: 98 },
   { id: 14, movieId: 4, hall: 'Sala 2 - Standard', date: '2026-08-12', time: '16:30', price: 700, seatsAvailable: 72 },
 
-  // Deadpool screenings
   { id: 15, movieId: 5, hall: 'Sala 2 - Standard', date: '2026-08-11', time: '15:30', price: 700, seatsAvailable: 38 },
   { id: 16, movieId: 5, hall: 'Sala 1 - IMAX', date: '2026-08-12', time: '20:00', price: 900, seatsAvailable: 110 },
 
-  // Inside Out 3 screenings
   { id: 17, movieId: 6, hall: 'Sala 2 - Standard', date: '2026-08-11', time: '11:00', price: 600, seatsAvailable: 60 },
   { id: 18, movieId: 6, hall: 'Sala 2 - Standard', date: '2026-08-11', time: '14:30', price: 600, seatsAvailable: 45 },
   { id: 19, movieId: 6, hall: 'Sala 3 - VIP', date: '2026-08-12', time: '12:00', price: 1000, seatsAvailable: 35 },
 
-  // Gladiator III & Interstellar 2 (Coming Soon - pre-sale)
   { id: 20, movieId: 7, hall: 'Sala 1 - IMAX', date: '2026-11-22', time: '19:00', price: 1000, seatsAvailable: 150 },
   { id: 21, movieId: 8, hall: 'Sala 1 - IMAX', date: '2026-12-20', time: '18:00', price: 1000, seatsAvailable: 150 },
 ]
 
-/**
- * Get a movie by its ID
- */
 export function getMovieById(id) {
   return moviesData.find((m) => m.id === Number(id))
 }
 
-/**
- * Get screenings for a movie, grouped by date
- */
 export function getScreeningsForMovie(movieId) {
   const movieScreenings = screeningsData.filter((s) => s.movieId === Number(movieId))
-
-  // Group by date
   const grouped = {}
   movieScreenings.forEach((s) => {
     if (!grouped[s.date]) grouped[s.date] = []
     grouped[s.date].push(s)
   })
-
   return grouped
 }

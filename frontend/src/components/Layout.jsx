@@ -1,69 +1,84 @@
 import { useState } from 'react'
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import {
-  Film,
-  Ticket,
-  CalendarDays,
-  Search,
-  User,
-  LayoutGrid,
-  LogOut,
-  Shield,
-} from 'lucide-react'
+import { Outlet, NavLink } from 'react-router-dom'
+import { Film, Ticket, CalendarDays, User, LogOut, Shield } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import AuthModal from './AuthModal'
-
-const navItems = [
-  { to: '/', icon: LayoutGrid, label: 'Početna' },
-  { to: '/movies', icon: Film, label: 'Filmovi' },
-  { to: '/tickets', icon: Ticket, label: 'Moje Karte' },
-  { to: '/schedule', icon: CalendarDays, label: 'Raspored' },
-  { to: '/search', icon: Search, label: 'Pretraga' },
-]
+import Toast from './Toast'
 
 export default function Layout() {
-  const location = useLocation()
-  const { user, isAuthenticated, isAdmin, logout } = useAuth()
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const { user, login, logout, isAuthenticated, isAdmin } = useAuth()
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [authMode, setAuthMode] = useState('login')
+  const [toast, setToast] = useState({ isVisible: false, message: '', type: 'info' })
 
-  const getInitials = () => {
-    if (!user) return '?'
-    if (user.firstName && user.lastName) {
-      return `${user.firstName[0]}${user.lastName[0]}`
-    }
-    return user.username?.[0]?.toUpperCase() || '?'
+  const showToast = (message, type = 'info') => {
+    setToast({ isVisible: true, message, type })
+  }
+
+  const handleOpenAuth = (mode = 'login') => {
+    setAuthMode(mode)
+    setIsAuthModalOpen(true)
+  }
+
+  const handleAuthSuccess = (token) => {
+    login(token)
+    showToast(
+      authMode === 'login' ? 'Uspešno ste se prijavili!' : 'Nalog je uspešno kreiran!',
+      'success'
+    )
+  }
+
+  const handleLogout = () => {
+    logout()
+    showToast('Odjavili ste se sa profila.', 'info')
   }
 
   return (
     <div className="app-layout">
-      {/* Vertical Sidebar Navigation */}
+      {/* Sidebar Navigation */}
       <aside className="sidebar">
-        <NavLink to="/" className="sidebar-logo">
+        <NavLink to="/" className="sidebar-logo" title="HypeCinema Home">
           H
         </NavLink>
 
         <nav className="sidebar-nav">
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              data-tooltip={label}
-              className={`sidebar-nav-item ${
-                location.pathname === to ? 'active' : ''
-              }`}
-            >
-              <Icon />
-            </NavLink>
-          ))}
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              `sidebar-nav-item ${isActive ? 'active' : ''}`
+            }
+            data-tooltip="Repertoar"
+          >
+            <Film />
+          </NavLink>
 
-          {/* Admin link (only for admin users) */}
-          {isAuthenticated() && isAdmin() && (
+          <NavLink
+            to="/reservations"
+            className={({ isActive }) =>
+              `sidebar-nav-item ${isActive ? 'active' : ''}`
+            }
+            data-tooltip="Moje karte"
+          >
+            <Ticket />
+          </NavLink>
+
+          <NavLink
+            to="/schedule"
+            className={({ isActive }) =>
+              `sidebar-nav-item ${isActive ? 'active' : ''}`
+            }
+            data-tooltip="Raspored"
+          >
+            <CalendarDays />
+          </NavLink>
+
+          {isAdmin() && (
             <NavLink
               to="/admin"
+              className={({ isActive }) =>
+                `sidebar-nav-item ${isActive ? 'active' : ''}`
+              }
               data-tooltip="Admin Panel"
-              className={`sidebar-nav-item ${
-                location.pathname.startsWith('/admin') ? 'active' : ''
-              }`}
             >
               <Shield />
             </NavLink>
@@ -74,24 +89,24 @@ export default function Layout() {
           {isAuthenticated() ? (
             <>
               <button
+                className="sidebar-avatar"
+                title={`${user?.firstName || user?.username} (${user?.loyaltyPoints || 0} poena)`}
+              >
+                {user?.firstName ? user.firstName[0].toUpperCase() : 'U'}
+              </button>
+              <button
                 className="sidebar-nav-item"
-                data-tooltip="Odjavi se"
-                onClick={logout}
+                onClick={handleLogout}
+                data-tooltip="Odjava"
               >
                 <LogOut />
               </button>
-              <NavLink
-                to="/profile"
-                data-tooltip={`${user?.username || 'Profil'} (${user?.loyaltyPoints ?? 0} poena)`}
-              >
-                <div className="sidebar-avatar">{getInitials()}</div>
-              </NavLink>
             </>
           ) : (
             <button
               className="sidebar-nav-item"
-              data-tooltip="Prijavi se"
-              onClick={() => setShowAuthModal(true)}
+              onClick={() => handleOpenAuth('login')}
+              data-tooltip="Prijava"
             >
               <User />
             </button>
@@ -99,15 +114,25 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main Page Area */}
       <main className="main-content">
-        <Outlet />
+        <Outlet context={{ handleOpenAuth, showToast }} />
       </main>
 
       {/* Auth Modal */}
       <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialMode={authMode}
+        onSuccess={handleAuthSuccess}
+      />
+
+      {/* Global Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast((t) => ({ ...t, isVisible: false }))}
       />
     </div>
   )

@@ -1,42 +1,38 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
-/**
- * Reusable Input field component with floating label and optional password toggle.
- */
 export default function InputField({
   label,
+  name,
   type = 'text',
   value,
   onChange,
-  name,
-  required = false,
-  error = '',
-  placeholder = '',
+  placeholder,
   icon: Icon,
+  error,
+  required = false,
+  className = '',
   ...props
 }) {
   const [showPassword, setShowPassword] = useState(false)
   const isPassword = type === 'password'
-  const inputType = isPassword && showPassword ? 'text' : type
+  const inputType = isPassword ? (showPassword ? 'text' : 'password') : type
 
   return (
-    <div className={`input-field ${error ? 'input-field--error' : ''}`}>
+    <div className={`input-field ${error ? 'input-field--error' : ''} ${className}`.trim()}>
       {label && (
-        <label className="input-field-label" htmlFor={name}>
-          {label}
+        <label className="input-field-label">
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <div className="input-field-wrapper">
         {Icon && <Icon size={18} className="input-field-icon" />}
         <input
-          id={name}
-          name={name}
           type={inputType}
+          name={name}
           value={value}
           onChange={onChange}
-          required={required}
-          placeholder={placeholder || label}
+          placeholder={placeholder}
           className="input-field-input"
           {...props}
         />
@@ -45,9 +41,9 @@ export default function InputField({
             type="button"
             className="input-field-toggle"
             onClick={() => setShowPassword(!showPassword)}
-            aria-label={showPassword ? 'Sakrij lozinku' : 'Prikaži lozinku'}
+            tabIndex={-1}
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         )}
       </div>

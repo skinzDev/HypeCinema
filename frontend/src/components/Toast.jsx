@@ -1,59 +1,33 @@
-import { useEffect, useState } from 'react'
-import { CheckCircle, AlertCircle, Info, X } from 'lucide-react'
+import { useEffect } from 'react'
+import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react'
 
-const iconMap = {
-  success: CheckCircle,
-  error: AlertCircle,
-  info: Info,
-}
-
-/**
- * Toast notification component.
- * Auto-dismisses after a configurable duration.
- */
-export default function Toast({ message, type = 'info', duration = 4000, onClose }) {
-  const [isVisible, setIsVisible] = useState(false)
-
+export default function Toast({ message, type = 'info', isVisible, onClose, duration = 4000 }) {
   useEffect(() => {
-    // Trigger enter animation
-    requestAnimationFrame(() => setIsVisible(true))
+    if (isVisible && duration > 0) {
+      const timer = setTimeout(() => {
+        onClose()
+      }, duration)
+      return () => clearTimeout(timer)
+    }
+  }, [isVisible, duration, onClose])
 
-    const timer = setTimeout(() => {
-      setIsVisible(false)
-      setTimeout(onClose, 300) // Wait for exit animation
-    }, duration)
+  if (!isVisible) return null
 
-    return () => clearTimeout(timer)
-  }, [duration, onClose])
+  const icons = {
+    success: <CheckCircle2 size={20} />,
+    error: <AlertCircle size={20} />,
+    info: <Info size={20} />,
+  }
 
-  const Icon = iconMap[type] || Info
-
-  return (
-    <div className={`toast toast--${type} ${isVisible ? 'toast--visible' : ''}`}>
-      <Icon size={18} className="toast-icon" />
-      <span className="toast-message">{message}</span>
-      <button className="toast-close" onClick={() => { setIsVisible(false); setTimeout(onClose, 300) }}>
-        <X size={14} />
-      </button>
-    </div>
-  )
-}
-
-/**
- * Toast container for managing multiple toasts.
- */
-export function ToastContainer({ toasts, removeToast }) {
   return (
     <div className="toast-container">
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          duration={toast.duration}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
+      <div className={`toast toast--${type} toast--visible`}>
+        <span className="toast-icon">{icons[type] || icons.info}</span>
+        <span className="toast-message">{message}</span>
+        <button className="toast-close" onClick={onClose} aria-label="Zatvori">
+          <X size={16} />
+        </button>
+      </div>
     </div>
   )
 }

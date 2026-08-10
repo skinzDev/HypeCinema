@@ -1,193 +1,173 @@
 import { useState, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import {
   ArrowLeft,
   Star,
   Clock,
   Calendar,
-  Users,
-  Clapperboard,
-  Play,
+  Film,
   Ticket,
   MapPin,
-  ChevronRight,
+  Play,
+  Users,
 } from 'lucide-react'
-import Button from '../components/Button'
 import { getMovieById, getScreeningsForMovie } from '../data/movies'
+import Button from '../components/Button'
 
 export default function MovieDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const outletContext = useOutletContext() || {}
+  const { handleOpenAuth } = outletContext
+
   const movie = getMovieById(id)
-  const screeningsByDate = getScreeningsForMovie(id)
-  const dates = Object.keys(screeningsByDate).sort()
+  const groupedScreenings = useMemo(() => getScreeningsForMovie(id), [id])
+  const dates = Object.keys(groupedScreenings)
 
   const [selectedDate, setSelectedDate] = useState(dates[0] || '')
 
-  const currentScreenings = useMemo(
-    () => screeningsByDate[selectedDate] || [],
-    [screeningsByDate, selectedDate]
-  )
-
   if (!movie) {
     return (
-      <div className="md-not-found">
-        <h2>Film nije pronađen</h2>
-        <p>Ne postoji film sa ID: {id}</p>
-        <Button variant="secondary" onClick={() => navigate('/')}>
-          <ArrowLeft size={16} />
-          Nazad na početnu
-        </Button>
+      <div className="md-page">
+        <button className="md-back" onClick={() => navigate('/')}>
+          <ArrowLeft size={18} /> Nazad na repertoar
+        </button>
+        <div className="md-not-found">
+          <h2>Film nije pronađen</h2>
+          <p>Film sa traženim identifikatorom ne postoji u našoj bazi.</p>
+          <Button variant="primary" onClick={() => navigate('/')}>
+            Vrati se na početnu
+          </Button>
+        </div>
       </div>
     )
   }
 
-  const formatDuration = (mins) => {
-    const h = Math.floor(mins / 60)
-    const m = mins % 60
-    return `${h}h ${m}min`
-  }
+  const currentScreenings = groupedScreenings[selectedDate] || []
 
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr + 'T00:00:00')
-    const options = { weekday: 'short', day: 'numeric', month: 'short' }
-    return d.toLocaleDateString('sr-Latn-RS', options)
+  const formatDateLabel = (dateStr) => {
+    const d = new Date(dateStr)
+    const days = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun',
+      'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'
+    ]
+    return {
+      dayName: days[d.getDay()],
+      dateFormatted: `${d.getDate()}. ${months[d.getMonth()]}`,
+    }
   }
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('sr-RS').format(price) + ' RSD'
-  }
-
-  const statusLabel =
-    movie.status === 'NOW_SHOWING' ? 'Trenutno u bioskopima' : 'Uskoro'
-  const statusClass =
-    movie.status === 'NOW_SHOWING' ? 'md-status--active' : 'md-status--soon'
 
   return (
     <div className="md-page">
-      {/* ── Back Button ── */}
-      <button className="md-back" onClick={() => navigate(-1)}>
-        <ArrowLeft size={18} />
-        <span>Nazad</span>
+      <button className="md-back" onClick={() => navigate('/')}>
+        <ArrowLeft size={18} /> Nazad na repertoar
       </button>
 
-      {/* ── Hero Section (Poster + Info) ── */}
-      <section className="md-hero">
-        {/* Poster */}
+      {/* Hero Movie Header */}
+      <div className="md-hero">
         <div className="md-poster-wrapper">
-          <img
-            className="md-poster"
-            src={movie.poster}
-            alt={movie.title}
-            onError={(e) => {
-              e.target.onerror = null
-              e.target.src =
-                'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop'
-            }}
-          />
+          <img src={movie.poster} alt={movie.title} className="md-poster" />
           <div className="md-poster-glow" />
         </div>
 
-        {/* Info */}
         <div className="md-info">
           <div className="md-info-header">
-            <span className={`md-status ${statusClass}`}>{statusLabel}</span>
-            <div className="md-rating-badge">
-              <Star size={16} />
-              <span>{movie.rating}</span>
-            </div>
+            <span
+              className={`md-status ${
+                movie.status === 'NOW_SHOWING' ? 'md-status--active' : 'md-status--soon'
+              }`}
+            >
+              {movie.status === 'NOW_SHOWING' ? 'Trenutno u bioskopima' : 'Uskoro'}
+            </span>
+            <span className="md-rating-badge">
+              <Star size={14} /> {movie.rating} / 10
+            </span>
           </div>
 
           <h1 className="md-title">{movie.title}</h1>
 
           <div className="md-meta">
             <span className="md-meta-item">
-              <Clock size={14} />
-              {formatDuration(movie.duration)}
+              <Film size={15} /> {movie.genre}
             </span>
-            <span className="md-meta-divider">·</span>
+            <span className="md-meta-divider">•</span>
             <span className="md-meta-item">
-              <Clapperboard size={14} />
-              {movie.genre}
+              <Clock size={15} /> {movie.duration} minuta
             </span>
-            <span className="md-meta-divider">·</span>
+            <span className="md-meta-divider">•</span>
             <span className="md-meta-item">
-              <Calendar size={14} />
-              {new Date(movie.releaseDate).toLocaleDateString('sr-Latn-RS', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              <Calendar size={15} /> {movie.releaseDate}
             </span>
           </div>
 
           <p className="md-description">{movie.description}</p>
 
-          {/* Director & Cast */}
           <div className="md-crew">
             <div className="md-crew-item">
-              <span className="md-crew-label">Režiser</span>
+              <span className="md-crew-label">Režija:</span>
               <span className="md-crew-value">{movie.director}</span>
             </div>
             <div className="md-crew-item">
-              <span className="md-crew-label">Glumci</span>
+              <span className="md-crew-label">Uloge:</span>
               <span className="md-crew-value">{movie.cast.join(', ')}</span>
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
           <div className="md-actions">
             <Button
               variant="primary"
               size="lg"
               onClick={() => {
                 const el = document.getElementById('screenings-section')
-                el?.scrollIntoView({ behavior: 'smooth' })
+                if (el) el.scrollIntoView({ behavior: 'smooth' })
               }}
             >
-              <Ticket size={18} />
-              Kupi Kartu
+              <Ticket size={18} /> Pogledaj projekcije
             </Button>
-            <Button variant="secondary" size="lg">
-              <Play size={18} />
-              Pogledaj Trejler
-            </Button>
+            {movie.trailer && (
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => window.open(movie.trailer, '_blank')}
+              >
+                <Play size={16} /> Trejler
+              </Button>
+            )}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── Screenings Section ── */}
-      <section className="md-screenings" id="screenings-section">
+      {/* Screenings Section */}
+      <section id="screenings-section" className="md-screenings">
         <h2 className="md-section-title">
-          <Calendar size={20} />
-          Dostupni Termini
+          <Calendar size={22} /> Dostupne projekcije i karte
         </h2>
 
         {dates.length === 0 ? (
           <div className="md-no-screenings">
-            <p>Trenutno nema dostupnih projekcija za ovaj film.</p>
+            <p>Trenutno nema zakazanih projekcija za ovaj film.</p>
           </div>
         ) : (
           <>
             {/* Date Selector */}
             <div className="md-date-selector">
-              {dates.map((date) => (
-                <button
-                  key={date}
-                  className={`md-date-chip ${selectedDate === date ? 'active' : ''}`}
-                  onClick={() => setSelectedDate(date)}
-                >
-                  <span className="md-date-chip-day">
-                    {formatDate(date).split(' ')[0]}
-                  </span>
-                  <span className="md-date-chip-date">
-                    {formatDate(date).split(' ').slice(1).join(' ')}
-                  </span>
-                </button>
-              ))}
+              {dates.map((dateStr) => {
+                const { dayName, dateFormatted } = formatDateLabel(dateStr)
+                return (
+                  <button
+                    key={dateStr}
+                    className={`md-date-chip ${selectedDate === dateStr ? 'active' : ''}`}
+                    onClick={() => setSelectedDate(dateStr)}
+                  >
+                    <span className="md-date-chip-day">{dayName}</span>
+                    <span className="md-date-chip-date">{dateFormatted}</span>
+                  </button>
+                )
+              })}
             </div>
 
-            {/* Screening Cards */}
+            {/* Screening List */}
             <div className="md-screening-list">
               {currentScreenings.map((screening) => (
                 <div key={screening.id} className="md-screening-card">
@@ -197,32 +177,29 @@ export default function MovieDetailsPage() {
 
                   <div className="md-screening-details">
                     <div className="md-screening-hall">
-                      <MapPin size={14} />
-                      <span>{screening.hall}</span>
+                      <MapPin size={14} /> {screening.hall}
                     </div>
                     <div className="md-screening-seats">
-                      <Users size={14} />
-                      <span>{screening.seatsAvailable} slobodnih mesta</span>
+                      <Users size={14} /> {screening.seatsAvailable} slobodnih mesta
                     </div>
                   </div>
 
                   <div className="md-screening-price">
-                    <span className="md-screening-price-value">
-                      {formatPrice(screening.price)}
-                    </span>
+                    <span className="md-screening-price-value">{screening.price} RSD</span>
                   </div>
 
                   <Button
                     variant="primary"
-                    size="sm"
-                    onClick={() =>
-                      navigate(`/booking/${screening.id}`, {
-                        state: { movie, screening },
-                      })
-                    }
+                    size="md"
+                    onClick={() => {
+                      if (handleOpenAuth) {
+                        handleOpenAuth('login')
+                      } else {
+                        alert(`Odabrali ste projekciju u ${screening.time} (${screening.hall})`)
+                      }
+                    }}
                   >
-                    Izaberi
-                    <ChevronRight size={14} />
+                    Izaberi mesto
                   </Button>
                 </div>
               ))}

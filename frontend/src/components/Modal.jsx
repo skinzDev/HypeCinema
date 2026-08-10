@@ -1,47 +1,32 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { X } from 'lucide-react'
 
-/**
- * Reusable Modal component with dark glassmorphism overlay.
- * Closes on backdrop click, Escape key, or close button.
- */
 export default function Modal({ isOpen, onClose, title, children, maxWidth = '480px' }) {
-  const modalRef = useRef(null)
-
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose()
     }
-
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
       document.body.style.overflow = 'hidden'
+      window.addEventListener('keydown', handleKeyDown)
     }
-
     return () => {
-      document.removeEventListener('keydown', handleEscape)
       document.body.style.overflow = ''
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen, onClose])
 
   if (!isOpen) return null
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) onClose()
-  }
-
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick}>
+    <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-content"
-        ref={modalRef}
         style={{ maxWidth }}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2 className="modal-title">{title}</h2>
+          {title && <h3 className="modal-title">{title}</h3>}
           <button className="modal-close" onClick={onClose} aria-label="Zatvori">
             <X size={20} />
           </button>
