@@ -80,7 +80,10 @@ export default function Layout() {
               >
                 <LogOut />
               </button>
-              <NavLink to="/profile" data-tooltip={user?.username}>
+              <NavLink
+                to="/profile"
+                data-tooltip={`${user?.username || 'Profil'} (${user?.loyaltyPoints ?? 0} poena)`}
+              >
                 <div className="sidebar-avatar">{getInitials()}</div>
               </NavLink>
             </>

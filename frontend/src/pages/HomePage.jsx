@@ -12,6 +12,7 @@ import {
   Play,
 } from 'lucide-react'
 import Button from '../components/Button'
+import { moviesData } from '../data/movies'
 
 /* ── Hero carousel data ── */
 const heroSlides = [
@@ -38,74 +39,6 @@ const heroSlides = [
     badge: 'Uskoro',
     image: '/posters/batman.png',
     genre: 'Triler / Akcija',
-  },
-]
-
-/* ── Movie cards data ── */
-const moviesData = [
-  {
-    id: 1,
-    title: 'Spider-Man: Brand New Day',
-    genre: 'Akcija',
-    rating: 8.7,
-    duration: 148,
-    poster: '/posters/spiderman.png',
-  },
-  {
-    id: 2,
-    title: 'Dune: Part Three',
-    genre: 'Sci-Fi',
-    rating: 9.1,
-    duration: 165,
-    poster: '/posters/dune.png',
-  },
-  {
-    id: 3,
-    title: 'The Batman: Part II',
-    genre: 'Triler',
-    rating: 8.4,
-    duration: 155,
-    poster: '/posters/batman.png',
-  },
-  {
-    id: 4,
-    title: 'Oppenheimer',
-    genre: 'Drama',
-    rating: 8.9,
-    duration: 180,
-    poster: '/posters/oppenheimer.png',
-  },
-  {
-    id: 5,
-    title: 'Deadpool & Wolverine',
-    genre: 'Komedija',
-    rating: 8.2,
-    duration: 128,
-    poster: '/posters/gladiator.png',
-  },
-  {
-    id: 6,
-    title: 'Inside Out 3',
-    genre: 'Animacija',
-    rating: 8.5,
-    duration: 100,
-    poster: '/posters/insideout.png',
-  },
-  {
-    id: 7,
-    title: 'Gladiator III',
-    genre: 'Akcija',
-    rating: 7.9,
-    duration: 150,
-    poster: '/posters/gladiator.png',
-  },
-  {
-    id: 8,
-    title: 'Interstellar 2',
-    genre: 'Sci-Fi',
-    rating: 9.3,
-    duration: 170,
-    poster: '/posters/interstellar.png',
   },
 ]
 

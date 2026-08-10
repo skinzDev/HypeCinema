@@ -23,6 +23,8 @@ export function AuthProvider({ children }) {
           role: payload.role,
           firstName: payload.firstName,
           lastName: payload.lastName,
+          loyaltyPoints: payload.loyaltyPoints ?? 120, // Demo početni poeni za testiranje
+          tier: payload.tier || 'BRONZE',
         })
       } catch (err) {
         console.error('Invalid JWT token:', err)
