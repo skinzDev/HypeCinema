@@ -68,7 +68,7 @@ export const moviesData = [
     id: 5,
     title: 'Deadpool & Wolverine',
     description:
-      'Najneozbiljniji timski film Marvel univerzuma. Deadpool i Wolverine udružuju snage u ludom, akcijom nabijenom, i urnebesno smešnom filmu koji ruši sve granice. Očekujte neočekivano — sa puno četvrte dimenzije, pop-kulture i nezaboravnih borbi.',
+      'Najneozbiljniji timski film Marvel univerzuma. Deadpool i Wolverine udružuju snage u ludom, akcijom nabijenom, i urnebesno smešnom filmu koji ruši sve granice. Očekujte neočekivano - sa puno četvrte dimenzije, pop-kulture i nezaboravnih borbi.',
     genre: 'Komedija',
     rating: 8.2,
     duration: 128,
@@ -76,7 +76,7 @@ export const moviesData = [
     cast: ['Ryan Reynolds', 'Hugh Jackman', 'Emma Corrin', 'Morena Baccarin'],
     releaseDate: '2024-07-26',
     status: 'NOW_SHOWING',
-    poster: '/posters/gladiator.png',
+    poster: '/posters/spiderman.png',
     trailer: '#',
   },
   {
