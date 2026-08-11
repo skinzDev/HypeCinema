@@ -40,12 +40,24 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  const isAuthenticated = () => !!token
+  const loginAsAdmin = () => {
+    setUser({
+      username: 'admin',
+      role: 'ADMIN',
+      firstName: 'Admin',
+      lastName: 'Administrator',
+      email: 'admin@hypecinema.rs',
+      loyaltyPoints: 9999,
+      tier: 'GOLD',
+    })
+  }
+
+  const isAuthenticated = () => !!user || !!token
   const isAdmin = () => user?.role === 'ADMIN'
 
   return (
     <AuthContext.Provider
-      value={{ token, user, login, logout, isAuthenticated, isAdmin }}
+      value={{ token, user, login, loginAsAdmin, logout, isAuthenticated, isAdmin }}
     >
       {children}
     </AuthContext.Provider>

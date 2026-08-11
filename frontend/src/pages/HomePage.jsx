@@ -161,7 +161,9 @@ export default function HomePage() {
 
       {/* Movies Grid */}
       <section className="movies-grid-section">
-        <h2 className="movies-section-title">Trenutno na repertoaru</h2>
+        <div className="movies-section-header">
+          <h2 className="movies-section-title">U BIOSKOPU</h2>
+        </div>
 
         <div className="movies-grid">
           {moviesData.map((movie) => (
@@ -170,37 +172,27 @@ export default function HomePage() {
               className="movie-card"
               onClick={() => navigate(`/movies/${movie.id}`)}
             >
-              {!imgErrors[movie.id] ? (
-                <img
-                  src={movie.poster}
-                  alt={movie.title}
-                  className="movie-card-image"
-                  onError={() => handleImgError(movie.id)}
-                />
-              ) : (
-                <div className="movie-card-placeholder">
-                  <Film size={36} className="placeholder-icon" />
-                  <span className="placeholder-title">{movie.title}</span>
-                </div>
-              )}
-
-              <div className="movie-card-overlay" />
-              
-              <div className="movie-card-bottom">
-                <h3 className="movie-card-bottom-title">{movie.title}</h3>
+              <div className="movie-card-poster-container">
+                {!imgErrors[movie.id] ? (
+                  <img
+                    src={movie.poster}
+                    alt={movie.title}
+                    className="movie-card-image"
+                    onError={() => handleImgError(movie.id)}
+                  />
+                ) : (
+                  <div className="movie-card-placeholder">
+                    <Film size={36} className="placeholder-icon" />
+                    <span className="placeholder-title">{movie.title}</span>
+                  </div>
+                )}
               </div>
 
-              <div className="movie-card-info">
+              <div className="movie-card-details">
                 <h3 className="movie-card-title">{movie.title}</h3>
-                <div className="movie-card-meta">
-                  <span className="movie-card-rating">
-                    <Star size={12} /> {movie.rating}
-                  </span>
-                  <span className="movie-card-genre">{movie.genre}</span>
-                  <span className="movie-card-duration">
-                    <Clock size={12} /> {movie.duration}m
-                  </span>
-                </div>
+                <p className="movie-card-subtitle">
+                  {movie.genre} · {movie.duration}m · ★ {movie.rating}
+                </p>
               </div>
             </div>
           ))}

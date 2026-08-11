@@ -172,14 +172,15 @@ export const screeningsData = [
  * Later replaced by real-time backend data.
  */
 export function getOccupiedSeats(screeningId) {
-  const screening = screeningsData.find((s) => s.id === Number(screeningId))
+  const screenings = getStoredScreenings()
+  const screening = screenings.find((s) => s.id === Number(screeningId))
   if (!screening) return []
 
   const hall = hallsData[screening.hall]
   if (!hall) return []
 
   const totalSeats = hall.totalSeats
-  const occupiedCount = totalSeats - screening.seatsAvailable
+  const occupiedCount = totalSeats - (screening.seatsAvailable ?? totalSeats)
   const occupied = []
 
   // Deterministic pseudo-random based on screeningId
@@ -209,16 +210,108 @@ export function getOccupiedSeats(screeningId) {
   return occupied
 }
 
+const MOVIES_STORAGE_KEY = 'hype_cinema_movies'
+const SCREENINGS_STORAGE_KEY = 'hype_cinema_screenings'
+
+/**
+ * Get all stored movies (with fallback to default mock array)
+ */
+export function getStoredMovies() {
+  try {
+    const raw = localStorage.getItem(MOVIES_STORAGE_KEY)
+    if (!raw) {
+      localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(moviesData))
+      return moviesData
+    }
+    return JSON.parse(raw)
+  } catch (err) {
+    return moviesData
+  }
+}
+
+export function addMovie(data) {
+  const movies = getStoredMovies()
+  const newId = movies.length > 0 ? Math.max(...movies.map((m) => m.id)) + 1 : 1
+  const newMovie = {
+    id: newId,
+    rating: 8.0,
+    status: 'NOW_SHOWING',
+    poster: '/posters/spiderman.png',
+    trailer: '#',
+    cast: [],
+    ...data,
+  }
+  const updated = [newMovie, ...movies]
+  localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(updated))
+  return updated
+}
+
+export function updateMovie(id, data) {
+  const movies = getStoredMovies()
+  const updated = movies.map((m) => (m.id === Number(id) ? { ...m, ...data } : m))
+  localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(updated))
+  return updated
+}
+
+export function deleteMovie(id) {
+  const movies = getStoredMovies()
+  const updated = movies.filter((m) => m.id !== Number(id))
+  localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(updated))
+  return updated
+}
+
+/**
+ * Get all stored screenings
+ */
+export function getStoredScreenings() {
+  try {
+    const raw = localStorage.getItem(SCREENINGS_STORAGE_KEY)
+    if (!raw) {
+      localStorage.setItem(SCREENINGS_STORAGE_KEY, JSON.stringify(screeningsData))
+      return screeningsData
+    }
+    return JSON.parse(raw)
+  } catch (err) {
+    return screeningsData
+  }
+}
+
+export function addScreening(data) {
+  const screenings = getStoredScreenings()
+  const newId = screenings.length > 0 ? Math.max(...screenings.map((s) => s.id)) + 1 : 1
+  const hall = hallsData[data.hall]
+  const totalSeats = hall ? hall.totalSeats : 120
+  const newScreening = {
+    id: newId,
+    seatsAvailable: totalSeats,
+    price: 800,
+    ...data,
+  }
+  const updated = [newScreening, ...screenings]
+  localStorage.setItem(SCREENINGS_STORAGE_KEY, JSON.stringify(updated))
+  return updated
+}
+
+export function deleteScreening(id) {
+  const screenings = getStoredScreenings()
+  const updated = screenings.filter((s) => s.id !== Number(id))
+  localStorage.setItem(SCREENINGS_STORAGE_KEY, JSON.stringify(updated))
+  return updated
+}
+
 export function getMovieById(id) {
-  return moviesData.find((m) => m.id === Number(id))
+  const movies = getStoredMovies()
+  return movies.find((m) => m.id === Number(id))
 }
 
 export function getScreeningById(id) {
-  return screeningsData.find((s) => s.id === Number(id))
+  const screenings = getStoredScreenings()
+  return screenings.find((s) => s.id === Number(id))
 }
 
 export function getScreeningsForMovie(movieId) {
-  const movieScreenings = screeningsData.filter((s) => s.movieId === Number(movieId))
+  const screenings = getStoredScreenings()
+  const movieScreenings = screenings.filter((s) => s.movieId === Number(movieId))
   const grouped = {}
   movieScreenings.forEach((s) => {
     if (!grouped[s.date]) grouped[s.date] = []
@@ -226,3 +319,4 @@ export function getScreeningsForMovie(movieId) {
   })
   return grouped
 }
+

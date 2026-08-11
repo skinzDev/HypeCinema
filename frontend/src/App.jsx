@@ -6,6 +6,7 @@ import MovieDetailsPage from './pages/MovieDetailsPage'
 import SeatSelectionPage from './pages/SeatSelectionPage'
 import CheckoutPage from './pages/CheckoutPage'
 import ReservationsPage from './pages/ReservationsPage'
+import AdminPage from './pages/AdminPage'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="reservations" element={<ReservationsPage />} />
             <Route path="profile" element={<ReservationsPage />} />
+            <Route path="admin" element={<AdminPage />} />
             <Route path="*" element={<HomePage />} />
           </Route>
         </Routes>
