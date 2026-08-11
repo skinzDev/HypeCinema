@@ -2,24 +2,36 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import QRCode from 'qrcode'
 import {
+  User,
   Ticket,
-  Award,
+  CreditCard,
+  History,
+  Heart,
+  LogOut,
+  Pencil,
+  ChevronDown,
+  ChevronUp,
   Star,
+  ChevronLeft,
+  ChevronRight,
   Calendar,
   Clock,
   MapPin,
   QrCode,
   XCircle,
-  CheckCircle2,
   AlertTriangle,
-  ChevronRight,
   Download,
   Copy,
   Check,
-  ShieldCheck,
-  Zap,
+  Award,
   Sparkles,
-  Info,
+  Zap,
+  Building2,
+  Save,
+  X,
+  Phone,
+  Mail,
+  Home,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -27,16 +39,73 @@ import {
   cancelBooking,
   calculateLoyaltyStats,
 } from '../data/bookings'
+import { getWatchlist, toggleWatchlist } from '../data/watchlist'
+import { moviesData } from '../data/movies'
 import Button from '../components/Button'
 import Modal from '../components/Modal'
+import InputField from '../components/InputField'
 
 export default function ReservationsPage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, updateUserProfile, logout, isAuthenticated } = useAuth()
   const { handleOpenAuth, showToast } = useOutletContext() || {}
   const navigate = useNavigate()
 
   const [bookings, setBookings] = useState([])
-  const [activeTab, setActiveTab] = useState('ACTIVE') // 'ACTIVE', 'COMPLETED', 'CANCELLED'
+  const [watchlistIds, setWatchlistIds] = useState([])
+  const [activeTab, setActiveTab] = useState('ACCOUNT') // 'ACCOUNT', 'TICKETS', 'LOYALTY', 'HISTORY', 'WATCHLIST'
+
+  // Expandable user profile state
+  const [isProfileExpanded, setIsProfileExpanded] = useState(false)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [profileForm, setProfileForm] = useState({
+    firstName: user?.firstName || 'Andrija',
+    lastName: user?.lastName || 'Milovanovic',
+    email: user?.email || 'aandrijq@gmail.com',
+    city: user?.city || 'Beograd',
+    address: user?.address || 'Bulevar Mihajla Pupina 10',
+    birthDate: user?.birthDate || '15.05.1998',
+    phone: user?.phone || '+381 64 123 4567',
+  })
+
+  // Sync profile form when user changes
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        firstName: user.firstName || 'Andrija',
+        lastName: user.lastName || 'Milovanovic',
+        email: user.email || 'aandrijq@gmail.com',
+        city: user.city || 'Beograd',
+        address: user.address || 'Bulevar Mihajla Pupina 10',
+        birthDate: user.birthDate || '15.05.1998',
+        phone: user.phone || '+381 64 123 4567',
+      })
+    }
+  }, [user])
+
+  // Favorite cinemas state
+  const [favoriteCinemas, setFavoriteCinemas] = useState([
+    {
+      id: 1,
+      name: 'HYPECINEMA GALERIJA 4D',
+      address: 'Galerija Shopping Center, Bulevar Vudroa Vilsona 12, Beograd',
+      image: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80',
+      isFav: true,
+    },
+    {
+      id: 2,
+      name: 'HYPECINEMA PLAZA KRAGUJEVAC',
+      address: 'Bulevar Kraljice Marije 56, RS-34000 Kragujevac',
+      image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80',
+      isFav: true,
+    },
+    {
+      id: 3,
+      name: 'HYPECINEMA PROMENADA NOVI SAD',
+      address: 'Bulevar oslobođenja 119, RS-21000 Novi Sad',
+      image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80',
+      isFav: true,
+    },
+  ])
 
   // Modal states
   const [selectedTicket, setSelectedTicket] = useState(null)
@@ -47,10 +116,10 @@ export default function ReservationsPage() {
   const modalQrCanvasRef = useRef(null)
   const [copiedRef, setCopiedRef] = useState(false)
 
-  // Load bookings on mount
+  // Load data on mount
   useEffect(() => {
-    const data = getStoredBookings()
-    setBookings(data)
+    setBookings(getStoredBookings())
+    setWatchlistIds(getWatchlist())
   }, [])
 
   // Loyalty calculations
@@ -58,17 +127,22 @@ export default function ReservationsPage() {
     return calculateLoyaltyStats(user, bookings)
   }, [user, bookings])
 
-  // Filtered bookings per tab
-  const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      if (activeTab === 'ACTIVE') return b.status === 'ACTIVE'
-      if (activeTab === 'COMPLETED') return b.status === 'COMPLETED'
-      if (activeTab === 'CANCELLED') return b.status === 'CANCELLED'
-      return true
-    })
-  }, [bookings, activeTab])
+  // Active tickets (only ACTIVE status for scanning)
+  const activeTickets = useMemo(() => {
+    return bookings.filter((b) => b.status === 'ACTIVE')
+  }, [bookings])
 
-  // Render QR Code in modal when selectedTicket changes
+  // Completed past transactions (for watched history table)
+  const completedTransactions = useMemo(() => {
+    return bookings.filter((b) => b.status === 'COMPLETED')
+  }, [bookings])
+
+  // Movies in watchlist
+  const watchlistMovies = useMemo(() => {
+    return moviesData.filter((m) => watchlistIds.includes(m.id))
+  }, [watchlistIds])
+
+  // QR canvas renderer
   useEffect(() => {
     if (qrModalOpen && selectedTicket && modalQrCanvasRef.current) {
       const qrData = JSON.stringify({
@@ -113,14 +187,47 @@ export default function ReservationsPage() {
     }
   }
 
+  const handleRemoveFromWatchlist = (e, movieId) => {
+    e.stopPropagation()
+    const updated = toggleWatchlist(movieId)
+    setWatchlistIds(updated)
+    if (showToast) {
+      showToast('Film je uklonjen iz liste želja', 'info')
+    }
+  }
+
   const handleCopyRef = (ref) => {
     navigator.clipboard.writeText(ref)
     setCopiedRef(true)
     setTimeout(() => setCopiedRef(false), 2000)
   }
 
+  const handleProfileFormChange = (e) => {
+    setProfileForm({ ...profileForm, [e.target.name]: e.target.value })
+  }
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault()
+    if (updateUserProfile) {
+      updateUserProfile(profileForm)
+    }
+    setIsEditingProfile(false)
+    setIsProfileExpanded(true)
+    if (showToast) {
+      showToast('Profilni podaci su uspešno sačuvani!', 'success')
+    }
+  }
+
+  const toggleFavCinema = (id) => {
+    setFavoriteCinemas((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, isFav: !c.isFav } : c))
+    )
+  }
+
   const formatDate = (dateStr) => {
+    if (!dateStr) return '-'
     const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
     const days = ['Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota']
     const months = [
       'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
@@ -129,261 +236,542 @@ export default function ReservationsPage() {
     return `${days[d.getDay()]}, ${d.getDate()}. ${months[d.getMonth()]} ${d.getFullYear()}.`
   }
 
-  // Tier badge graphics
+  const formatTransactionTime = (createdAtStr) => {
+    if (!createdAtStr) return '11.08.2026. u 14:22'
+    const d = new Date(createdAtStr)
+    if (isNaN(d.getTime())) return '11.08.2026. u 14:22'
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    return `${day}.${month}.${year}. u ${hours}:${minutes}`
+  }
+
   const getTierIcon = (tier) => {
     switch (tier) {
-      case 'GOLD':
-        return '🥇'
-      case 'SILVER':
-        return '🥈'
-      default:
-        return '🥉'
+      case 'GOLD': return '🥇'
+      case 'SILVER': return '🥈'
+      default: return '🥉'
     }
   }
 
   return (
-    <div className="res-page">
-      {/* Page Header */}
-      <div className="res-header">
-        <div>
-          <h1 className="res-title">Moje Karte & HypeClub</h1>
-          <p className="res-subtitle">
-            Upravljajte kupljenim ulaznicama i uvidite vaše HypeClub poene i beneficije ranga.
-          </p>
-        </div>
+    <div className="cine-profile-page">
+      <div className="cine-profile-container">
+        {/* Left Navigation Sidebar */}
+        <aside className="cine-profile-sidebar">
+          <nav className="cine-profile-menu">
+            <button
+              className={`cine-profile-menu-item ${activeTab === 'ACCOUNT' ? 'active' : ''}`}
+              onClick={() => setActiveTab('ACCOUNT')}
+            >
+              <User className="cine-menu-icon" />
+              <span>Moj nalog</span>
+            </button>
 
-        {!isAuthenticated() && (
-          <div className="res-auth-banner">
-            <Info size={16} />
-            <span>Prijavite se da biste videli vaš lični profil i sakupljene poene.</span>
-            <Button variant="secondary" size="sm" onClick={() => handleOpenAuth('login')}>
-              Prijavi se
-            </Button>
-          </div>
-        )}
-      </div>
+            <button
+              className={`cine-profile-menu-item ${activeTab === 'TICKETS' ? 'active' : ''}`}
+              onClick={() => setActiveTab('TICKETS')}
+            >
+              <Ticket className="cine-menu-icon" />
+              <span>Moje ulaznice</span>
+            </button>
 
-      {/* User Loyalty Dashboard Card */}
-      <div className="res-loyalty-card">
-        <div className="res-loyalty-main">
-          {/* Rank Badge */}
-          <div className={`res-tier-badge res-tier-badge--${stats.tier.toLowerCase()}`}>
-            <span className="res-tier-emoji">{getTierIcon(stats.tier)}</span>
-            <div className="res-tier-info">
-              <span className="res-tier-label">HypeClub Rang</span>
-              <span className="res-tier-name">{stats.tier} MEMBER</span>
-            </div>
-          </div>
+            <button
+              className={`cine-profile-menu-item ${activeTab === 'LOYALTY' ? 'active' : ''}`}
+              onClick={() => setActiveTab('LOYALTY')}
+            >
+              <CreditCard className="cine-menu-icon" />
+              <span>Moja Bonus kartica</span>
+            </button>
 
-          {/* Points Overview */}
-          <div className="res-points-overview">
-            <div className="res-points-box">
-              <span className="res-points-num">{stats.points.toLocaleString('sr-RS')}</span>
-              <span className="res-points-sub">
-                <Star size={13} /> Trenutni poeni
-              </span>
-            </div>
+            <button
+              className={`cine-profile-menu-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
+              onClick={() => setActiveTab('HISTORY')}
+            >
+              <History className="cine-menu-icon" />
+              <span>Moja istorija</span>
+            </button>
 
-            <div className="res-points-box">
-              <span className="res-points-num">{stats.totalSpent.toLocaleString('sr-RS')} RSD</span>
-              <span className="res-points-sub">Ukupno potrošeno</span>
-            </div>
+            <button
+              className={`cine-profile-menu-item ${activeTab === 'WATCHLIST' ? 'active' : ''}`}
+              onClick={() => setActiveTab('WATCHLIST')}
+            >
+              <Heart className="cine-menu-icon" />
+              <span>Moja lista za gledanje</span>
+            </button>
 
-            <div className="res-points-box">
-              <span className="res-points-num">{stats.activeTicketsCount}</span>
-              <span className="res-points-sub">Aktivne ulaznice</span>
-            </div>
-          </div>
-        </div>
+            <button
+              className="cine-profile-menu-item cine-menu-logout"
+              onClick={() => {
+                logout()
+                if (showToast) showToast('Odjavili ste se sa profila.', 'info')
+                navigate('/')
+              }}
+            >
+              <LogOut className="cine-menu-icon" />
+              <span>Odjavi se</span>
+            </button>
+          </nav>
+        </aside>
 
-        {/* Tier Progress Bar */}
-        {stats.tier !== 'GOLD' && (
-          <div className="res-tier-progress-wrapper">
-            <div className="res-tier-progress-header">
-              <span>Napredak do <strong>{stats.nextTier}</strong> ranga</span>
-              <span>
-                {stats.points} / {stats.nextTierThreshold} poena ({stats.progressPercent}%)
-              </span>
-            </div>
-            <div className="res-tier-progress-track">
-              <div
-                className="res-tier-progress-fill"
-                style={{ width: `${stats.progressPercent}%` }}
-              />
-            </div>
-          </div>
-        )}
+        {/* Main Content Area */}
+        <main className="cine-profile-main">
+          {/* TAB 1: MOJ NALOG */}
+          {activeTab === 'ACCOUNT' && (
+            <div className="cine-account-view">
+              <h1 className="cine-page-header-title">MOJ NALOG</h1>
 
-        {/* Tier Privileges Summary */}
-        <div className="res-tier-benefits">
-          <div className={`res-benefit-item ${stats.tier === 'BRONZE' ? 'res-benefit-item--current' : ''}`}>
-            <Sparkles size={14} />
-            <span><strong>BRONZE:</strong> 10 poena na svakih 100 RSD</span>
-          </div>
-          <div className={`res-benefit-item ${stats.tier === 'SILVER' ? 'res-benefit-item--current' : ''}`}>
-            <Zap size={14} />
-            <span><strong>SILVER:</strong> +5% bonus poena & popust u bifeu</span>
-          </div>
-          <div className={`res-benefit-item ${stats.tier === 'GOLD' ? 'res-benefit-item--current' : ''}`}>
-            <Award size={14} />
-            <span><strong>GOLD:</strong> +10% bonus poena, VIP ulaz & besplatne kokice</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Bookings Section */}
-      <div className="res-tickets-section">
-        {/* Navigation Tabs */}
-        <div className="res-tabs">
-          <button
-            className={`res-tab ${activeTab === 'ACTIVE' ? 'res-tab--active' : ''}`}
-            onClick={() => setActiveTab('ACTIVE')}
-          >
-            <Ticket size={16} />
-            <span>Aktivne karte</span>
-            <span className="res-tab-count">
-              {bookings.filter((b) => b.status === 'ACTIVE').length}
-            </span>
-          </button>
-
-          <button
-            className={`res-tab ${activeTab === 'COMPLETED' ? 'res-tab--active' : ''}`}
-            onClick={() => setActiveTab('COMPLETED')}
-          >
-            <CheckCircle2 size={16} />
-            <span>Istorija kupljenih</span>
-            <span className="res-tab-count">
-              {bookings.filter((b) => b.status === 'COMPLETED').length}
-            </span>
-          </button>
-
-          <button
-            className={`res-tab ${activeTab === 'CANCELLED' ? 'res-tab--active' : ''}`}
-            onClick={() => setActiveTab('CANCELLED')}
-          >
-            <XCircle size={16} />
-            <span>Otkazane karte</span>
-            <span className="res-tab-count">
-              {bookings.filter((b) => b.status === 'CANCELLED').length}
-            </span>
-          </button>
-        </div>
-
-        {/* Bookings List */}
-        {filteredBookings.length === 0 ? (
-          <div className="res-empty-state">
-            <div className="res-empty-icon">
-              <Ticket size={32} />
-            </div>
-            <h3>Nema karata u ovoj kategoriji</h3>
-            <p>
-              {activeTab === 'ACTIVE'
-                ? 'Nemate trenutno aktivnih rezervacija. Izaberite film sa repertoara i rezervišite svoje mesto.'
-                : activeTab === 'COMPLETED'
-                ? 'Nema arhiviranih kupljenih karata.'
-                : 'Nemate otkazanih rezervacija.'}
-            </p>
-            <Button variant="primary" onClick={() => navigate('/')}>
-              Pogledaj repertoar
-            </Button>
-          </div>
-        ) : (
-          <div className="res-tickets-grid">
-            {filteredBookings.map((ticket) => {
-              const seatDisplay = ticket.seatLabels || ticket.seats
-              return (
-                <div key={ticket.id} className="res-ticket-card">
-                  {/* Poster Thumbnail */}
-                  <div className="res-ticket-poster">
-                    <img src={ticket.poster} alt={ticket.movieTitle} />
+              {/* User Profile Card */}
+              <div className="cine-user-card">
+                <div className="cine-user-card-header">
+                  <div className="cine-user-card-info">
+                    <h2 className="cine-user-name">
+                      {user?.firstName ? `${user.firstName} ${user.lastName}` : 'Andrija Milovanovic'}
+                    </h2>
+                    <p className="cine-user-email">
+                      {user?.email || 'aandrijq@gmail.com'}
+                    </p>
                   </div>
 
-                  {/* Ticket Content */}
-                  <div className="res-ticket-main">
-                    <div className="res-ticket-header">
-                      <h3 className="res-ticket-title">{ticket.movieTitle}</h3>
-                      <span className={`res-status-tag res-status-tag--${ticket.status.toLowerCase()}`}>
-                        {ticket.status === 'ACTIVE' && 'Aktivna'}
-                        {ticket.status === 'COMPLETED' && 'Iskorišćena'}
-                        {ticket.status === 'CANCELLED' && 'Otkazana'}
-                      </span>
-                    </div>
+                  <div className="cine-user-card-actions">
+                    <button
+                      className="cine-card-btn cine-btn-edit"
+                      onClick={() => {
+                        setIsEditingProfile(!isEditingProfile)
+                        setIsProfileExpanded(true)
+                      }}
+                      title="Izmeni podatke profila"
+                    >
+                      <Pencil size={18} />
+                    </button>
 
-                    <div className="res-ticket-meta">
-                      <span className="res-meta-item">
-                        <Calendar size={13} /> {formatDate(ticket.date)}
-                      </span>
-                      <span className="res-meta-item">
-                        <Clock size={13} /> {ticket.time}
-                      </span>
-                      <span className="res-meta-item">
-                        <MapPin size={13} /> {ticket.hall}
-                      </span>
-                    </div>
-
-                    <div className="res-ticket-seats-row">
-                      <span className="res-seats-label">Sedišta:</span>
-                      <div className="res-seats-badges">
-                        {seatDisplay.map((s) => (
-                          <span key={s} className="res-seat-chip">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="res-ticket-footer">
-                      <div className="res-ticket-price">
-                        <span>Plaćeno:</span>
-                        <strong className="res-price-num">
-                          {ticket.finalTotal.toLocaleString('sr-RS')} RSD
-                        </strong>
-                      </div>
-
-                      <span className="res-ticket-ref">Ref: {ticket.ref}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions column */}
-                  <div className="res-ticket-actions">
-                    {ticket.status === 'ACTIVE' && (
-                      <>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleOpenQrModal(ticket)}
-                        >
-                          <QrCode size={15} /> QR Kod
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleOpenCancelModal(ticket)}
-                        >
-                          <XCircle size={15} /> Otkaži
-                        </Button>
-                      </>
-                    )}
-
-                    {ticket.status === 'COMPLETED' && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleOpenQrModal(ticket)}
-                      >
-                        <QrCode size={15} /> Pregled karte
-                      </Button>
-                    )}
-
-                    {ticket.status === 'CANCELLED' && (
-                      <span className="res-cancelled-note">Otkazano</span>
-                    )}
+                    <button
+                      className={`cine-card-btn cine-btn-expand ${isProfileExpanded ? 'expanded' : ''}`}
+                      onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+                      title={isProfileExpanded ? 'Sakrij detalje' : 'Prikaži detalje profila'}
+                    >
+                      <ChevronDown size={20} />
+                    </button>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
+
+                {/* Collapsible Details Content */}
+                {isProfileExpanded && (
+                  <div className="cine-user-details-body">
+                    {isEditingProfile ? (
+                      /* Edit Profile Form */
+                      <form onSubmit={handleSaveProfile} className="cine-edit-profile-form">
+                        <div className="cine-form-row">
+                          <InputField
+                            label="Ime"
+                            name="firstName"
+                            value={profileForm.firstName}
+                            onChange={handleProfileFormChange}
+                            required
+                          />
+                          <InputField
+                            label="Prezime"
+                            name="lastName"
+                            value={profileForm.lastName}
+                            onChange={handleProfileFormChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="cine-form-row">
+                          <InputField
+                            label="Email adresa"
+                            name="email"
+                            type="email"
+                            value={profileForm.email}
+                            onChange={handleProfileFormChange}
+                            required
+                          />
+                          <InputField
+                            label="Telefon"
+                            name="phone"
+                            value={profileForm.phone}
+                            onChange={handleProfileFormChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="cine-form-row">
+                          <InputField
+                            label="Grad / Mesto stanovanja"
+                            name="city"
+                            value={profileForm.city}
+                            onChange={handleProfileFormChange}
+                            required
+                          />
+                          <InputField
+                            label="Adresa"
+                            name="address"
+                            value={profileForm.address}
+                            onChange={handleProfileFormChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="cine-form-row">
+                          <InputField
+                            label="Datum rođenja"
+                            name="birthDate"
+                            type="text"
+                            placeholder="15.05.1998"
+                            value={profileForm.birthDate}
+                            onChange={handleProfileFormChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="cine-form-actions">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setIsEditingProfile(false)}
+                          >
+                            <X size={16} /> Odustani
+                          </Button>
+                          <Button type="submit" variant="primary">
+                            <Save size={16} /> Sačuvaj izmene
+                          </Button>
+                        </div>
+                      </form>
+                    ) : (
+                      /* Read-only User Details Display */
+                      <div className="cine-details-grid">
+                        <div className="cine-detail-item">
+                          <span className="cine-detail-label">Grad / Mesto stanovanja:</span>
+                          <span className="cine-detail-value">{user?.city || 'Beograd'}</span>
+                        </div>
+
+                        <div className="cine-detail-item">
+                          <span className="cine-detail-label">Adresa:</span>
+                          <span className="cine-detail-value">{user?.address || 'Bulevar Mihajla Pupina 10'}</span>
+                        </div>
+
+                        <div className="cine-detail-item">
+                          <span className="cine-detail-label">Datum rođenja:</span>
+                          <span className="cine-detail-value">{user?.birthDate || '15.05.1998'}</span>
+                        </div>
+
+                        <div className="cine-detail-item">
+                          <span className="cine-detail-label">Telefon:</span>
+                          <span className="cine-detail-value">{user?.phone || '+381 64 123 4567'}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Section: MOJI OMILJENI BIOSKOPI */}
+              <div className="cine-fav-section">
+                <h3 className="cine-fav-section-title">MOJI OMILJENI BIOSKOPI</h3>
+
+                <div className="cine-cinema-cards-grid">
+                  {favoriteCinemas.map((cinema) => (
+                    <div key={cinema.id} className="cine-cinema-card">
+                      <button
+                        className={`cine-cinema-fav-btn ${cinema.isFav ? 'active' : ''}`}
+                        onClick={() => toggleFavCinema(cinema.id)}
+                        title="Omiljeni bioskop"
+                      >
+                        <Star size={18} fill={cinema.isFav ? '#e11d48' : 'none'} />
+                      </button>
+
+                      <div className="cine-cinema-img-wrapper">
+                        <img src={cinema.image} alt={cinema.name} />
+                      </div>
+
+                      <div className="cine-cinema-details">
+                        <h4 className="cine-cinema-name">{cinema.name}</h4>
+                        <p className="cine-cinema-address">{cinema.address}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: MOJE ULAZNICE */}
+          {activeTab === 'TICKETS' && (
+            <div className="cine-tab-view">
+              <h1 className="cine-page-header-title">MOJE ULAZNICE</h1>
+
+              {activeTickets.length === 0 ? (
+                <div className="res-empty-state">
+                  <div className="res-empty-icon">
+                    <Ticket size={36} />
+                  </div>
+                  <h3>Nemate aktivnih ulaznica</h3>
+                  <p>
+                    Ovde se prikazuju važeće karte spremne za skeniranje na ulazu u bioskop.
+                  </p>
+                  <Button variant="primary" onClick={() => navigate('/')}>
+                    Pogledaj repertoar
+                  </Button>
+                </div>
+              ) : (
+                <div className="res-tickets-grid">
+                  {activeTickets.map((ticket) => {
+                    const seatDisplay = ticket.seatLabels || ticket.seats
+                    return (
+                      <div key={ticket.id} className="res-ticket-card">
+                        <div className="res-ticket-poster">
+                          <img src={ticket.poster} alt={ticket.movieTitle} />
+                        </div>
+
+                        <div className="res-ticket-main">
+                          <div className="res-ticket-header">
+                            <h3 className="res-ticket-title">{ticket.movieTitle}</h3>
+                            <span className="res-status-tag res-status-tag--active">
+                              Spremno za ulaz
+                            </span>
+                          </div>
+
+                          <div className="res-ticket-meta">
+                            <span className="res-meta-item">
+                              <Calendar size={14} /> {formatDate(ticket.date)}
+                            </span>
+                            <span className="res-meta-item">
+                              <Clock size={14} /> {ticket.time}
+                            </span>
+                            <span className="res-meta-item">
+                              <MapPin size={14} /> {ticket.hall}
+                            </span>
+                          </div>
+
+                          <div className="res-ticket-seats-row">
+                            <span className="res-seats-label">Izabrana sedišta:</span>
+                            <div className="res-seats-badges">
+                              {seatDisplay.map((s) => (
+                                <span key={s} className="res-seat-chip">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="res-ticket-footer">
+                            <div className="res-ticket-price">
+                              <span>Plaćeni iznos:</span>
+                              <strong className="res-price-num">
+                                {ticket.finalTotal.toLocaleString('sr-RS')} RSD
+                              </strong>
+                            </div>
+                            <span className="res-ticket-ref">KOD: {ticket.ref}</span>
+                          </div>
+                        </div>
+
+                        <div className="res-ticket-actions">
+                          <Button
+                            variant="primary"
+                            size="md"
+                            onClick={() => handleOpenQrModal(ticket)}
+                          >
+                            <QrCode size={16} /> QR Kod za ulaz
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleOpenCancelModal(ticket)}
+                          >
+                            <XCircle size={15} /> Otkaži kartu
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: MOJA BONUS KARTICA */}
+          {activeTab === 'LOYALTY' && (
+            <div className="cine-tab-view">
+              <h1 className="cine-page-header-title">MOJA BONUS KARTICA</h1>
+
+              <div className="res-loyalty-card">
+                <div className="res-loyalty-main">
+                  <div className={`res-tier-badge res-tier-badge--${stats.tier.toLowerCase()}`}>
+                    <span className="res-tier-emoji">{getTierIcon(stats.tier)}</span>
+                    <div className="res-tier-info">
+                      <span className="res-tier-label">HypeClub Rang</span>
+                      <span className="res-tier-name">{stats.tier} MEMBER</span>
+                    </div>
+                  </div>
+
+                  <div className="res-points-overview">
+                    <div className="res-points-box">
+                      <span className="res-points-num">{stats.points.toLocaleString('sr-RS')}</span>
+                      <span className="res-points-sub">
+                        <Star size={13} /> Sakupljeni poeni
+                      </span>
+                    </div>
+
+                    <div className="res-points-box">
+                      <span className="res-points-num">{stats.totalSpent.toLocaleString('sr-RS')} RSD</span>
+                      <span className="res-points-sub">Ukupna potrošnja</span>
+                    </div>
+
+                    <div className="res-points-box">
+                      <span className="res-points-num">{stats.activeTicketsCount}</span>
+                      <span className="res-points-sub">Aktivne karte</span>
+                    </div>
+                  </div>
+                </div>
+
+                {stats.tier !== 'GOLD' && (
+                  <div className="res-tier-progress-wrapper">
+                    <div className="res-tier-progress-header">
+                      <span>Napredak do <strong>{stats.nextTier}</strong> ranga</span>
+                      <span>
+                        {stats.points} / {stats.nextTierThreshold} poena ({stats.progressPercent}%)
+                      </span>
+                    </div>
+                    <div className="res-tier-progress-track">
+                      <div
+                        className="res-tier-progress-fill"
+                        style={{ width: `${stats.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="res-tier-benefits">
+                  <div className={`res-benefit-item ${stats.tier === 'BRONZE' ? 'res-benefit-item--current' : ''}`}>
+                    <Sparkles size={14} />
+                    <span><strong>BRONZE:</strong> 10 poena na svakih 100 RSD potrošnje</span>
+                  </div>
+                  <div className={`res-benefit-item ${stats.tier === 'SILVER' ? 'res-benefit-item--current' : ''}`}>
+                    <Zap size={14} />
+                    <span><strong>SILVER:</strong> +5% bonus poena & popusti na osveženja u bifeu</span>
+                  </div>
+                  <div className={`res-benefit-item ${stats.tier === 'GOLD' ? 'res-benefit-item--current' : ''}`}>
+                    <Award size={14} />
+                    <span><strong>GOLD:</strong> +10% bonus poena, VIP brzi ulaz & besplatne kokice</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: MOJA ISTORIJA */}
+          {activeTab === 'HISTORY' && (
+            <div className="cine-tab-view">
+              <h1 className="cine-page-header-title">MOJA ISTORIJA KUPOVINA</h1>
+
+              {completedTransactions.length === 0 ? (
+                <div className="res-empty-state">
+                  <div className="res-empty-icon">
+                    <History size={36} />
+                  </div>
+                  <h3>Nema odgledanih projekcija u istoriji</h3>
+                  <p>Nakon što odgledate kupljenu projekciju, ovde će se prikazati detalji transakcije.</p>
+                </div>
+              ) : (
+                <div className="history-table-wrapper">
+                  <table className="history-table">
+                    <thead>
+                      <tr>
+                        <th>1. Datum i vreme transakcije</th>
+                        <th>2. Bioskop</th>
+                        <th>3. Film</th>
+                        <th>4. Broj ulaznica</th>
+                        <th>5. Cena</th>
+                        <th>6. Loyalty bodovi</th>
+                        <th>7. Datum projekcije</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {completedTransactions.map((item) => (
+                        <tr key={item.id}>
+                          <td className="history-col-time">
+                            {formatTransactionTime(item.createdAt)}
+                          </td>
+                          <td className="history-col-cinema">
+                            <Building2 size={14} className="inline-icon" />
+                            {item.cinemaLocation || 'Hype Galerija - Beograd'}
+                          </td>
+                          <td className="history-col-movie">
+                            <strong>{item.movieTitle}</strong>
+                          </td>
+                          <td className="history-col-tickets">
+                            {(item.seatLabels || item.seats || []).length} ulaznice
+                          </td>
+                          <td className="history-col-price">
+                            {item.finalTotal.toLocaleString('sr-RS')} RSD
+                          </td>
+                          <td className="history-col-points">
+                            +{item.earnedPoints || Math.floor(item.finalTotal / 10)} poena
+                          </td>
+                          <td className="history-col-screening">
+                            {item.date} u {item.time}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 5: MOJA LISTA ZA GLEDANJE */}
+          {activeTab === 'WATCHLIST' && (
+            <div className="cine-tab-view">
+              <h1 className="cine-page-header-title">MOJA LISTA ZA GLEDANJE</h1>
+
+              {watchlistMovies.length === 0 ? (
+                <div className="res-empty-state">
+                  <div className="res-empty-icon">
+                    <Heart size={36} />
+                  </div>
+                  <h3>Vaša lista za gledanje je prazna</h3>
+                  <p>
+                    Označite filmove ikonicom srca (💖) na detaljima filma da biste ih sačuvali na ovoj listi.
+                  </p>
+                  <Button variant="primary" onClick={() => navigate('/')}>
+                    Istraži filmove
+                  </Button>
+                </div>
+              ) : (
+                <div className="watchlist-grid">
+                  {watchlistMovies.map((movie) => (
+                    <div
+                      key={movie.id}
+                      className="watchlist-card"
+                      onClick={() => navigate(`/movies/${movie.id}`)}
+                    >
+                      <div className="watchlist-poster">
+                        <img src={movie.poster} alt={movie.title} />
+                        <button
+                          className="watchlist-remove-btn"
+                          onClick={(e) => handleRemoveFromWatchlist(e, movie.id)}
+                          title="Ukloni iz liste želja"
+                        >
+                          <XCircle size={16} />
+                        </button>
+                      </div>
+                      <div className="watchlist-info">
+                        <h3 className="watchlist-title">{movie.title}</h3>
+                        <p className="watchlist-meta">
+                          {movie.genre} · {movie.duration}m · ★ {movie.rating}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </main>
       </div>
 
       {/* QR Ticket Detail Modal */}
@@ -393,12 +781,11 @@ export default function ReservationsPage() {
           setQrModalOpen(false)
           setSelectedTicket(null)
         }}
-        title="Digitalna Bioskopska Karta"
-        maxWidth="500px"
+        title="Digitalna Bioskopska Karta za Ulaz"
+        maxWidth="480px"
       >
         {selectedTicket && (
           <div className="res-modal-ticket">
-            {/* Header info */}
             <div className="res-modal-ticket-header">
               <span className="res-modal-logo">HypeCinema</span>
               <div className="res-modal-ref">
@@ -413,14 +800,12 @@ export default function ReservationsPage() {
               </div>
             </div>
 
-            {/* Perforated divider */}
             <div className="co-ticket-divider">
               <div className="co-ticket-notch co-ticket-notch--left" />
               <div className="co-ticket-dash" />
               <div className="co-ticket-notch co-ticket-notch--right" />
             </div>
 
-            {/* Body */}
             <div className="res-modal-ticket-body">
               <div className="res-modal-info-grid">
                 <div className="co-ticket-field">
@@ -445,28 +830,17 @@ export default function ReservationsPage() {
                     {(selectedTicket.seatLabels || selectedTicket.seats).join(', ')}
                   </span>
                 </div>
-                <div className="co-ticket-field">
-                  <span className="co-ticket-field-label">Kupac</span>
-                  <span className="co-ticket-field-value">{selectedTicket.customerName}</span>
-                </div>
-                <div className="co-ticket-field">
-                  <span className="co-ticket-field-label">Plaćeni iznos</span>
-                  <span className="co-ticket-field-value co-ticket-field-value--mono">
-                    {selectedTicket.finalTotal.toLocaleString('sr-RS')} RSD
-                  </span>
-                </div>
               </div>
 
               <div className="co-ticket-qr">
                 <canvas ref={modalQrCanvasRef} />
-                <span className="co-ticket-qr-hint">Skenirajte na ulazu</span>
+                <span className="co-ticket-qr-hint">Skenirajte ovaj QR kod na ulazu</span>
               </div>
             </div>
 
-            {/* Modal Actions */}
             <div className="res-modal-actions">
               <Button variant="secondary" size="md" onClick={() => window.print()}>
-                <Download size={16} /> Sačuj / Štampaj
+                <Download size={16} /> Sačuvaj / Štampaj
               </Button>
               <Button
                 variant="primary"

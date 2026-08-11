@@ -3,6 +3,7 @@ import { Outlet, NavLink } from 'react-router-dom'
 import { Film, Ticket, CalendarDays, User, LogOut, Shield } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import AuthModal from './AuthModal'
+import Footer from './Footer'
 import Toast from './Toast'
 
 export default function Layout() {
@@ -50,16 +51,6 @@ export default function Layout() {
             data-tooltip="Repertoar"
           >
             <Film />
-          </NavLink>
-
-          <NavLink
-            to="/reservations"
-            className={({ isActive }) =>
-              `sidebar-nav-item ${isActive ? 'active' : ''}`
-            }
-            data-tooltip="Moje karte"
-          >
-            <Ticket />
           </NavLink>
 
           <NavLink
@@ -116,7 +107,10 @@ export default function Layout() {
 
       {/* Main Page Area */}
       <main className="main-content">
-        <Outlet context={{ handleOpenAuth, showToast }} />
+        <div className="main-content-body">
+          <Outlet context={{ handleOpenAuth, showToast }} />
+        </div>
+        <Footer />
       </main>
 
       {/* Auth Modal */}

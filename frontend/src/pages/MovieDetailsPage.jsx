@@ -10,21 +10,36 @@ import {
   MapPin,
   Play,
   Users,
+  Heart,
 } from 'lucide-react'
 import { getMovieById, getScreeningsForMovie } from '../data/movies'
+import { isInWatchlist, toggleWatchlist } from '../data/watchlist'
 import Button from '../components/Button'
 
 export default function MovieDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const outletContext = useOutletContext() || {}
-  const { handleOpenAuth } = outletContext
+  const { handleOpenAuth, showToast } = outletContext
 
   const movie = getMovieById(id)
   const groupedScreenings = useMemo(() => getScreeningsForMovie(id), [id])
   const dates = Object.keys(groupedScreenings)
 
   const [selectedDate, setSelectedDate] = useState(dates[0] || '')
+  const [inWatchlist, setInWatchlist] = useState(() => isInWatchlist(id))
+
+  const handleToggleWatchlist = () => {
+    const updated = toggleWatchlist(id)
+    const isSaved = updated.includes(Number(id))
+    setInWatchlist(isSaved)
+    if (showToast) {
+      showToast(
+        isSaved ? 'Dodato u vašu listu želja' : 'Uklonjeno iz liste želja',
+        'info'
+      )
+    }
+  }
 
   if (!movie) {
     return (
@@ -124,6 +139,14 @@ export default function MovieDetailsPage() {
               }}
             >
               <Ticket size={18} /> Pogledaj projekcije
+            </Button>
+            <Button
+              variant={inWatchlist ? "primary" : "secondary"}
+              size="lg"
+              onClick={handleToggleWatchlist}
+            >
+              <Heart size={18} fill={inWatchlist ? "currentColor" : "none"} />
+              {inWatchlist ? "U listi želja" : "Dodaj u listu želja"}
             </Button>
             {movie.trailer && (
               <Button

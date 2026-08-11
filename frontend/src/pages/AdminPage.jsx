@@ -236,9 +236,6 @@ export default function AdminPage() {
       {/* Header & Title */}
       <div className="admin-header">
         <div>
-          <div className="admin-badge">
-            <Shield size={14} /> ADMINISTRATOR PANEL
-          </div>
           <h1 className="admin-title">Upravljanje Bioskopom</h1>
           <p className="admin-subtitle">
             Katalog filmova, zakazivanje projekcija, sale i globalni pregled rezervacija.
@@ -248,51 +245,6 @@ export default function AdminPage() {
         <div className="admin-user-info">
           <span className="admin-user-name">{user?.firstName || user?.username}</span>
           <span className="admin-role-tag">ROLE_ADMIN</span>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="admin-kpis">
-        <div className="admin-kpi-card">
-          <div className="admin-kpi-icon">
-            <Film size={22} />
-          </div>
-          <div className="admin-kpi-data">
-            <span className="admin-kpi-value">{kpis.totalMovies}</span>
-            <span className="admin-kpi-label">Filmova u ponudi</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="admin-kpi-icon">
-            <Calendar size={22} />
-          </div>
-          <div className="admin-kpi-data">
-            <span className="admin-kpi-value">{kpis.totalScreenings}</span>
-            <span className="admin-kpi-label">Zakazanih projekcija</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="admin-kpi-icon">
-            <Ticket size={22} />
-          </div>
-          <div className="admin-kpi-data">
-            <span className="admin-kpi-value">{kpis.totalBookings}</span>
-            <span className="admin-kpi-label">Ukupno rezervacija</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="admin-kpi-icon">
-            <DollarSign size={22} />
-          </div>
-          <div className="admin-kpi-data">
-            <span className="admin-kpi-value">
-              {kpis.totalRevenue.toLocaleString('sr-RS')} RSD
-            </span>
-            <span className="admin-kpi-label">Ukupni prihod</span>
-          </div>
         </div>
       </div>
 
