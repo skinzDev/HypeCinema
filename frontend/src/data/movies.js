@@ -126,6 +126,16 @@ export const moviesData = [
   },
 ]
 
+/**
+ * Hall layout configurations.
+ * Each hall has rows and seatsPerRow defining its 2D map.
+ */
+export const hallsData = {
+  'Sala 1 - IMAX': { rows: 12, seatsPerRow: 16, totalSeats: 192, type: 'IMAX' },
+  'Sala 2 - Standard': { rows: 10, seatsPerRow: 12, totalSeats: 120, type: 'Standard' },
+  'Sala 3 - VIP': { rows: 6, seatsPerRow: 8, totalSeats: 48, type: 'VIP' },
+}
+
 export const screeningsData = [
   { id: 1, movieId: 1, hall: 'Sala 1 - IMAX', date: '2026-08-11', time: '14:00', price: 900, seatsAvailable: 87 },
   { id: 2, movieId: 1, hall: 'Sala 2 - Standard', date: '2026-08-11', time: '17:00', price: 700, seatsAvailable: 52 },
@@ -156,8 +166,55 @@ export const screeningsData = [
   { id: 21, movieId: 8, hall: 'Sala 1 - IMAX', date: '2026-12-20', time: '18:00', price: 1000, seatsAvailable: 150 },
 ]
 
+/**
+ * Generates deterministic occupied seats for a screening.
+ * Uses screeningId as a seed so same seats are "taken" on every render.
+ * Later replaced by real-time backend data.
+ */
+export function getOccupiedSeats(screeningId) {
+  const screening = screeningsData.find((s) => s.id === Number(screeningId))
+  if (!screening) return []
+
+  const hall = hallsData[screening.hall]
+  if (!hall) return []
+
+  const totalSeats = hall.totalSeats
+  const occupiedCount = totalSeats - screening.seatsAvailable
+  const occupied = []
+
+  // Deterministic pseudo-random based on screeningId
+  let seed = screeningId * 2654435761
+  const pseudoRandom = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff
+    return seed / 0x7fffffff
+  }
+
+  const allSeats = []
+  for (let r = 1; r <= hall.rows; r++) {
+    for (let s = 1; s <= hall.seatsPerRow; s++) {
+      allSeats.push(`${r}-${s}`)
+    }
+  }
+
+  // Shuffle and pick first N occupied
+  for (let i = allSeats.length - 1; i > 0; i--) {
+    const j = Math.floor(pseudoRandom() * (i + 1))
+    ;[allSeats[i], allSeats[j]] = [allSeats[j], allSeats[i]]
+  }
+
+  for (let i = 0; i < Math.min(occupiedCount, allSeats.length); i++) {
+    occupied.push(allSeats[i])
+  }
+
+  return occupied
+}
+
 export function getMovieById(id) {
   return moviesData.find((m) => m.id === Number(id))
+}
+
+export function getScreeningById(id) {
+  return screeningsData.find((s) => s.id === Number(id))
 }
 
 export function getScreeningsForMovie(movieId) {
@@ -169,3 +226,99 @@ export function getScreeningsForMovie(movieId) {
   })
   return grouped
 }
+
+/**
+ * Mock bookings data — simulates past user reservations.
+ * Later replaced with API calls to Spring Boot backend.
+ */
+export const mockBookingsData = [
+  {
+    id: 1,
+    ref: 'HC-4KM7WNXP',
+    movieId: 1,
+    screeningId: 1,
+    seats: ['3-7', '3-8', '3-9'],
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    totalPrice: 2700,
+    pointsEarned: 270,
+    pointsRedeemed: 0,
+    discountAmount: 0,
+    customerName: 'Marko Marković',
+    customerEmail: 'marko@example.com',
+    createdAt: '2026-08-09T14:30:00',
+  },
+  {
+    id: 2,
+    ref: 'HC-9BT3RQLA',
+    movieId: 2,
+    screeningId: 6,
+    seats: ['5-4', '5-5'],
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    totalPrice: 1600,
+    pointsEarned: 160,
+    pointsRedeemed: 200,
+    discountAmount: 200,
+    customerName: 'Marko Marković',
+    customerEmail: 'marko@example.com',
+    createdAt: '2026-08-10T11:15:00',
+  },
+  {
+    id: 3,
+    ref: 'HC-2FX8JCVD',
+    movieId: 4,
+    screeningId: 13,
+    seats: ['7-10', '7-11', '7-12', '7-13'],
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    totalPrice: 3600,
+    pointsEarned: 360,
+    pointsRedeemed: 0,
+    discountAmount: 0,
+    customerName: 'Marko Marković',
+    customerEmail: 'marko@example.com',
+    createdAt: '2026-08-11T09:45:00',
+  },
+  {
+    id: 4,
+    ref: 'HC-7HN5YQMZ',
+    movieId: 6,
+    screeningId: 17,
+    seats: ['2-5', '2-6'],
+    status: 'CANCELLED',
+    paymentStatus: 'REFUNDED',
+    totalPrice: 1200,
+    pointsEarned: 0,
+    pointsRedeemed: 0,
+    discountAmount: 0,
+    customerName: 'Marko Marković',
+    customerEmail: 'marko@example.com',
+    createdAt: '2026-08-08T16:20:00',
+  },
+  {
+    id: 5,
+    ref: 'HC-3DP6KWST',
+    movieId: 5,
+    screeningId: 15,
+    seats: ['4-3'],
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    totalPrice: 700,
+    pointsEarned: 70,
+    pointsRedeemed: 0,
+    discountAmount: 0,
+    customerName: 'Marko Marković',
+    customerEmail: 'marko@example.com',
+    createdAt: '2026-08-11T12:00:00',
+  },
+]
+
+export function getUserBookings() {
+  return mockBookingsData.map((booking) => ({
+    ...booking,
+    movie: getMovieById(booking.movieId),
+    screening: getScreeningById(booking.screeningId),
+  }))
+}
+

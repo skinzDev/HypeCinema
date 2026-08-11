@@ -1,0 +1,377 @@
+import { useState, useMemo, useCallback } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Ticket,
+  MapPin,
+  Clock,
+  Calendar,
+  Film,
+  Star,
+  CreditCard,
+  Gift,
+  Minus,
+  Plus,
+  Info,
+  ChevronRight,
+} from 'lucide-react'
+import {
+  getMovieById,
+  getScreeningById,
+  getOccupiedSeats,
+  hallsData,
+} from '../data/movies'
+import { useAuth } from '../context/AuthContext'
+import Button from '../components/Button'
+
+/** Row labels: A, B, C... */
+const rowLabel = (rowNum) => String.fromCharCode(64 + rowNum)
+
+export default function SeatSelectionPage() {
+  const { screeningId } = useParams()
+  const navigate = useNavigate()
+  const { user, isAuthenticated } = useAuth()
+
+  const screening = getScreeningById(screeningId)
+  const movie = screening ? getMovieById(screening.movieId) : null
+  const hall = screening ? hallsData[screening.hall] : null
+  const occupiedSeats = useMemo(
+    () => (screening ? getOccupiedSeats(screening.id) : []),
+    [screening]
+  )
+  const occupiedSet = useMemo(() => new Set(occupiedSeats), [occupiedSeats])
+
+  const [selectedSeats, setSelectedSeats] = useState([])
+  const [pointsToRedeem, setPointsToRedeem] = useState(0)
+  const [hoveredSeat, setHoveredSeat] = useState(null)
+
+  // Loyalty points
+  const userPoints = user?.loyaltyPoints ?? 0
+  const userTier = user?.tier ?? 'BRONZE'
+
+  // Price calculations
+  const baseTotal = selectedSeats.length * (screening?.price ?? 0)
+  const discount = Math.min(pointsToRedeem, baseTotal) // 1 poen = 1 RSD
+  const finalTotal = baseTotal - discount
+  const earnedPoints = Math.floor(finalTotal / 100) * 10
+
+  // Tier bonus
+  const tierBonus =
+    userTier === 'GOLD' ? 0.1 : userTier === 'SILVER' ? 0.05 : 0
+  const totalEarnedWithBonus = Math.floor(earnedPoints * (1 + tierBonus))
+
+  const toggleSeat = useCallback(
+    (seatKey) => {
+      if (occupiedSet.has(seatKey)) return
+      setSelectedSeats((prev) =>
+        prev.includes(seatKey)
+          ? prev.filter((s) => s !== seatKey)
+          : prev.length < 8
+          ? [...prev, seatKey]
+          : prev
+      )
+    },
+    [occupiedSet]
+  )
+
+  const adjustPoints = (delta) => {
+    setPointsToRedeem((prev) => {
+      const next = prev + delta
+      if (next < 0) return 0
+      if (next > userPoints) return userPoints
+      if (next > baseTotal) return baseTotal
+      return next
+    })
+  }
+
+  // Not-found state
+  if (!screening || !movie || !hall) {
+    return (
+      <div className="ss-page">
+        <button className="md-back" onClick={() => navigate(-1)}>
+          <ArrowLeft size={18} /> Nazad
+        </button>
+        <div className="md-not-found">
+          <h2>Projekcija nije pronađena</h2>
+          <p>Projekcija sa traženim identifikatorom ne postoji.</p>
+          <Button variant="primary" onClick={() => navigate('/')}>
+            Nazad na početnu
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr)
+    const days = ['Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota']
+    const months = [
+      'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
+      'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
+    ]
+    return `${days[d.getDay()]}, ${d.getDate()}. ${months[d.getMonth()]} ${d.getFullYear()}.`
+  }
+
+  return (
+    <div className="ss-page">
+      {/* Back navigation */}
+      <button className="md-back" onClick={() => navigate(`/movies/${movie.id}`)}>
+        <ArrowLeft size={18} /> Nazad na detalje filma
+      </button>
+
+      {/* Page Header with movie context */}
+      <div className="ss-header">
+        <div className="ss-header-poster">
+          <img src={movie.poster} alt={movie.title} />
+        </div>
+        <div className="ss-header-info">
+          <h1 className="ss-header-title">{movie.title}</h1>
+          <div className="ss-header-meta">
+            <span className="ss-meta-tag">
+              <MapPin size={14} /> {screening.hall}
+            </span>
+            <span className="ss-meta-tag">
+              <Calendar size={14} /> {formatDate(screening.date)}
+            </span>
+            <span className="ss-meta-tag">
+              <Clock size={14} /> {screening.time}
+            </span>
+            <span className="ss-meta-tag">
+              <Film size={14} /> {movie.duration} min
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main layout: Seat map + Order summary */}
+      <div className="ss-layout">
+        {/* LEFT: Cinema Hall Map */}
+        <div className="ss-hall-section">
+          {/* Screen indicator */}
+          <div className="ss-screen-wrapper">
+            <div className="ss-screen">
+              <span>PLATNO</span>
+            </div>
+            <div className="ss-screen-glow" />
+          </div>
+
+          {/* Seat grid */}
+          <div className="ss-seat-grid" style={{ '--cols': hall.seatsPerRow }}>
+            {Array.from({ length: hall.rows }, (_, rowIdx) => {
+              const rowNum = rowIdx + 1
+              return (
+                <div key={rowNum} className="ss-seat-row">
+                  <span className="ss-row-label">{rowLabel(rowNum)}</span>
+                  <div className="ss-seats-in-row">
+                    {Array.from({ length: hall.seatsPerRow }, (_, seatIdx) => {
+                      const seatNum = seatIdx + 1
+                      const seatKey = `${rowNum}-${seatNum}`
+                      const isOccupied = occupiedSet.has(seatKey)
+                      const isSelected = selectedSeats.includes(seatKey)
+                      const isHovered = hoveredSeat === seatKey
+
+                      let seatClass = 'ss-seat'
+                      if (isOccupied) seatClass += ' ss-seat--occupied'
+                      else if (isSelected) seatClass += ' ss-seat--selected'
+                      else seatClass += ' ss-seat--available'
+                      if (isHovered && !isOccupied) seatClass += ' ss-seat--hovered'
+
+                      return (
+                        <button
+                          key={seatKey}
+                          className={seatClass}
+                          onClick={() => toggleSeat(seatKey)}
+                          onMouseEnter={() => setHoveredSeat(seatKey)}
+                          onMouseLeave={() => setHoveredSeat(null)}
+                          disabled={isOccupied}
+                          title={
+                            isOccupied
+                              ? `${rowLabel(rowNum)}${seatNum} — Zauzeto`
+                              : `${rowLabel(rowNum)}${seatNum}`
+                          }
+                          aria-label={`Sedište ${rowLabel(rowNum)}${seatNum}`}
+                        >
+                          {seatNum}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <span className="ss-row-label">{rowLabel(rowNum)}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="ss-legend">
+            <div className="ss-legend-item">
+              <span className="ss-legend-dot ss-legend-dot--available" />
+              <span>Slobodno</span>
+            </div>
+            <div className="ss-legend-item">
+              <span className="ss-legend-dot ss-legend-dot--selected" />
+              <span>Izabrano</span>
+            </div>
+            <div className="ss-legend-item">
+              <span className="ss-legend-dot ss-legend-dot--occupied" />
+              <span>Zauzeto</span>
+            </div>
+          </div>
+
+          {selectedSeats.length >= 8 && (
+            <div className="ss-max-notice">
+              <Info size={14} /> Maksimalan broj sedišta po rezervaciji je 8.
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: Order Summary Panel */}
+        <aside className="ss-summary">
+          <div className="ss-summary-card">
+            <h3 className="ss-summary-heading">
+              <Ticket size={18} /> Pregled porudžbine
+            </h3>
+
+            {/* Selected seats display */}
+            <div className="ss-summary-section">
+              <span className="ss-summary-label">Izabrana sedišta</span>
+              {selectedSeats.length === 0 ? (
+                <p className="ss-summary-empty">
+                  Kliknite na sedišta u sali da biste ih izabrali.
+                </p>
+              ) : (
+                <div className="ss-selected-seats">
+                  {selectedSeats
+                    .sort((a, b) => {
+                      const [ar, as] = a.split('-').map(Number)
+                      const [br, bs] = b.split('-').map(Number)
+                      return ar !== br ? ar - br : as - bs
+                    })
+                    .map((seat) => {
+                      const [r, s] = seat.split('-').map(Number)
+                      return (
+                        <span
+                          key={seat}
+                          className="ss-seat-badge"
+                          onClick={() => toggleSeat(seat)}
+                          title="Kliknite za uklanjanje"
+                        >
+                          {rowLabel(r)}{s}
+                          <span className="ss-seat-badge-x">×</span>
+                        </span>
+                      )
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* Price breakdown */}
+            <div className="ss-summary-section ss-price-breakdown">
+              <div className="ss-price-row">
+                <span>
+                  {selectedSeats.length} × {screening.price} RSD
+                </span>
+                <span className="ss-price-value">{baseTotal.toLocaleString('sr-RS')} RSD</span>
+              </div>
+
+              {/* Loyalty Points Redemption */}
+              {isAuthenticated() && userPoints > 0 && selectedSeats.length > 0 && (
+                <div className="ss-loyalty-section">
+                  <div className="ss-loyalty-header">
+                    <Gift size={15} />
+                    <span>HypeClub poeni</span>
+                    <span className="ss-loyalty-balance">
+                      {userPoints.toLocaleString('sr-RS')} dostupno
+                    </span>
+                  </div>
+                  <div className="ss-loyalty-controls">
+                    <button
+                      className="ss-loyalty-btn"
+                      onClick={() => adjustPoints(-50)}
+                      disabled={pointsToRedeem <= 0}
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="ss-loyalty-amount">
+                      {pointsToRedeem.toLocaleString('sr-RS')} poena
+                    </span>
+                    <button
+                      className="ss-loyalty-btn"
+                      onClick={() => adjustPoints(50)}
+                      disabled={pointsToRedeem >= userPoints || pointsToRedeem >= baseTotal}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                  {pointsToRedeem > 0 && (
+                    <div className="ss-price-row ss-price-row--discount">
+                      <span>Popust (poeni)</span>
+                      <span className="ss-price-value ss-price-discount">
+                        -{discount.toLocaleString('sr-RS')} RSD
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Final total */}
+              <div className="ss-price-row ss-price-row--total">
+                <span>Ukupno za plaćanje</span>
+                <span className="ss-price-total">
+                  {finalTotal.toLocaleString('sr-RS')} RSD
+                </span>
+              </div>
+
+              {/* Earned points preview */}
+              {isAuthenticated() && selectedSeats.length > 0 && (
+                <div className="ss-earned-preview">
+                  <Star size={13} />
+                  <span>
+                    Zarađujete <strong>{totalEarnedWithBonus}</strong> poena za ovu kupovinu
+                    {tierBonus > 0 && (
+                      <span className="ss-tier-bonus">
+                        {' '}
+                        (+{Math.round(tierBonus * 100)}% {userTier} bonus)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Continue button */}
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              disabled={selectedSeats.length === 0}
+              onClick={() => {
+                // Navigate to billing/payment page (to be implemented in next phase)
+                navigate(`/checkout`, {
+                  state: {
+                    screeningId: screening.id,
+                    movieId: movie.id,
+                    selectedSeats,
+                    pointsToRedeem,
+                    finalTotal,
+                  },
+                })
+              }}
+            >
+              <CreditCard size={18} />
+              Nastavi na plaćanje
+              <ChevronRight size={16} />
+            </Button>
+
+            {!isAuthenticated() && selectedSeats.length > 0 && (
+              <p className="ss-auth-notice">
+                <Info size={13} />
+                Prijavite se da biste koristili HypeClub poene i sačuvali rezervaciju.
+              </p>
+            )}
+          </div>
+        </aside>
+      </div>
+    </div>
+  )
+}

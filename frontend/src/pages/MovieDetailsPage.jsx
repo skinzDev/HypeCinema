@@ -191,13 +191,7 @@ export default function MovieDetailsPage() {
                   <Button
                     variant="primary"
                     size="md"
-                    onClick={() => {
-                      if (handleOpenAuth) {
-                        handleOpenAuth('login')
-                      } else {
-                        alert(`Odabrali ste projekciju u ${screening.time} (${screening.hall})`)
-                      }
-                    }}
+                    onClick={() => navigate(`/screening/${screening.id}/seats`)}
                   >
                     Izaberi mesto
                   </Button>
