@@ -88,12 +88,14 @@ export default function Layout() {
         <div className="sidebar-bottom">
           {isAuthenticated() ? (
             <>
-              <button
+              <NavLink
+                to="/profile"
                 className="sidebar-avatar"
                 title={`${user?.firstName || user?.username} (${user?.loyaltyPoints || 0} poena)`}
+                data-tooltip="Moj Profil"
               >
                 {user?.firstName ? user.firstName[0].toUpperCase() : 'U'}
-              </button>
+              </NavLink>
               <button
                 className="sidebar-nav-item"
                 onClick={handleLogout}

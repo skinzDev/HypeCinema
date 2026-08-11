@@ -23,6 +23,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { getMovieById, getScreeningById } from '../data/movies'
+import { addBooking } from '../data/bookings'
 import { useAuth } from '../context/AuthContext'
 import Button from '../components/Button'
 import InputField from '../components/InputField'
@@ -231,6 +232,28 @@ export default function CheckoutPage() {
 
     const ref = generateBookingRef()
     setBookingRef(ref)
+
+    // Save booking to localStorage
+    addBooking({
+      ref,
+      movieId: movie.id,
+      screeningId: screening.id,
+      movieTitle: movie.title,
+      poster: movie.poster,
+      hall: screening.hall,
+      date: screening.date,
+      time: screening.time,
+      seats: sortedSeats,
+      seatLabels: sortedSeats.map(formatSeat),
+      pricePerTicket,
+      baseTotal,
+      pointsRedeemed: discount,
+      finalTotal,
+      earnedPoints: totalEarnedWithBonus,
+      customerName: `${customerForm.firstName} ${customerForm.lastName}`,
+      customerEmail: customerForm.email,
+    })
+
     setIsProcessing(false)
     setStep(STEPS.CONFIRMATION)
     window.scrollTo({ top: 0, behavior: 'smooth' })
