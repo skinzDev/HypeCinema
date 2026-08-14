@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import Layout from './components/Layout'
@@ -10,6 +11,16 @@ import AdminPage from './pages/AdminPage'
 import SchedulePage from './pages/SchedulePage'
 
 export default function App() {
+  // Clear old mock test data once for clean baseline
+  useEffect(() => {
+    const CLEAN_KEY = 'hype_cinema_v3_clean_state'
+    if (!localStorage.getItem(CLEAN_KEY)) {
+      localStorage.removeItem('hype_cinema_user_bookings')
+      localStorage.removeItem('hype_cinema_global_occupied_seats')
+      localStorage.setItem(CLEAN_KEY, 'true')
+    }
+  }, [])
+
   return (
     <AuthProvider>
       <BrowserRouter>

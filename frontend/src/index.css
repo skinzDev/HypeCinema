@@ -521,6 +521,38 @@ ul, ol {
   gap: var(--space-6) var(--space-5);
 }
 
+.movies-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-6);
+  background: var(--color-bg-secondary);
+  border: 1px dashed var(--color-border-default);
+  border-radius: var(--radius-xl);
+  width: 100%;
+}
+
+.movies-empty-state .empty-icon {
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-2);
+}
+
+.movies-empty-state h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.movies-empty-state p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  max-width: 420px;
+  margin-bottom: var(--space-2);
+}
+
 .movie-card {
   display: flex;
   flex-direction: column;
@@ -798,6 +830,174 @@ ul, ol {
 /* Input without icon */
 .input-field-wrapper:not(:has(.input-field-icon)) .input-field-input {
   padding-left: var(--space-4);
+}
+
+/* --- Custom Select (Dropdown) Component & Combobox Styling --- */
+.select-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.select-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.select-field-icon {
+  position: absolute;
+  left: var(--space-4);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.select-field-input {
+  width: 100%;
+  padding: 11px 40px 11px 16px;
+  background: #141417;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: #f4f4f5;
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.select-field-input.has-icon {
+  padding-left: calc(var(--space-4) + 18px + var(--space-3));
+}
+
+.select-field-input:hover:not(:disabled) {
+  background: #19191d;
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.select-field-input:focus {
+  background: #19191d;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.18);
+}
+
+.select-field-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.select-field-chevron-box {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+  z-index: 2;
+  transition: color var(--transition-fast);
+}
+
+.select-field-wrapper:hover .select-field-chevron-box {
+  color: var(--color-text-primary);
+}
+
+.select-field--error .select-field-input {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/* Global Option elements styling across browsers */
+select.select-field-input option,
+select.admin-select option,
+select.filter-select option,
+select.schedule-select option,
+.admin-form select option {
+  background: #18181b !important;
+  color: #f4f4f5 !important;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+/* Fallback for raw select elements in admin panels */
+.admin-select,
+.admin-form select {
+  width: 100%;
+  padding: 11px 40px 11px 16px;
+  background: #141417;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: #f4f4f5;
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+  transition: all var(--transition-fast);
+}
+
+.admin-select:hover,
+.admin-form select:hover {
+  background-color: #19191d;
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.admin-select:focus,
+.admin-form select:focus {
+  background-color: #19191d;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.18);
+}
+
+/* Textarea in admin forms */
+textarea.input-field {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  transition: var(--transition-fast);
+  outline: none;
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.5;
+}
+
+textarea.input-field:focus {
+  border-color: var(--color-accent-primary);
+}
+
+textarea.input-field::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Label styling for select wrappers */
+.input-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
 }
 
 /* --- Toast Notifications --- */
@@ -1400,21 +1600,31 @@ ul, ol {
   position: relative;
 }
 
-.ss-screen span {
-  position: absolute;
-  top: calc(100% + var(--space-3));
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 3px;
-  color: var(--color-text-tertiary);
-  white-space: nowrap;
+.ss-screen-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-6);
 }
 
-.ss-screen-glow {
-  display: none;
+.ss-screen-arc-svg {
+  width: 100%;
+  max-width: 540px;
+  height: 36px;
+  overflow: visible;
+  filter: drop-shadow(0 2px 8px rgba(255, 255, 255, 0.15));
+}
+
+.ss-screen-text {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  margin-top: -8px;
+  user-select: none;
 }
 
 /* Seat grid */
@@ -1433,111 +1643,150 @@ ul, ol {
 }
 
 .ss-row-label {
-  width: 20px;
+  width: 24px;
   text-align: center;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-text-tertiary);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   user-select: none;
 }
 
 .ss-seats-in-row {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
-/* Individual seat */
+/* Individual stadium bucket seat (Cineplexx style matching screenshot) */
 .ss-seat {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 600;
+  font-size: 0.65rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
-  border: 1px solid transparent;
+  border: none;
   position: relative;
   user-select: none;
 }
 
 .ss-seat--available {
-  background: #202026;
-  color: var(--color-text-tertiary);
-  border-color: #2e2e35;
+  background: #ffffff;
+  color: #18181b;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .ss-seat--available:hover,
 .ss-seat--available.ss-seat--hovered {
-  background: #2a2a32;
-  color: var(--color-text-primary);
-  border-color: #3f3f46;
-  transform: scale(1.05);
+  background: #f4f4f5;
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .ss-seat--selected {
-  background: var(--color-accent-primary);
-  color: white;
-  border-color: var(--color-accent-primary-hover);
-  transform: scale(1.05);
+  background: #ffffff;
+  border: 2px solid var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  transform: scale(1.08);
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.4);
 }
 
-.ss-seat--selected:hover {
-  background: var(--color-accent-primary-hover);
-  transform: scale(1.1);
+.ss-selected-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-accent-primary);
+  display: block;
 }
 
 .ss-seat--occupied {
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.06);
-  border-color: transparent;
+  background: #3f3f46;
+  color: #71717a;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
-/* Legend */
+.ss-seat--occupied::after {
+  content: '✕';
+  font-size: 0.7rem;
+  color: #a1a1aa;
+}
+
+/* Cineplexx Legend Bar (Matching user screenshot) */
 .ss-legend {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-8);
+  justify-content: center;
+  gap: var(--space-6);
   padding: var(--space-4) var(--space-6);
-  background: rgba(255, 255, 255, 0.02);
+  background: #18181b;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
 }
 
 .ss-legend-item {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-xs);
-  font-weight: 500;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   color: var(--color-text-secondary);
+  text-transform: uppercase;
 }
 
-.ss-legend-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: var(--radius-sm);
+.ss-legend-box {
+  width: 22px;
+  height: 22px;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
 }
 
-.ss-legend-dot--available {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.ss-legend-box--occupied {
+  background: #3f3f46;
 }
 
-.ss-legend-dot--selected {
+.ss-legend-box--selected {
+  background: #ffffff;
+  border: 2px solid var(--color-accent-primary);
+}
+
+.ss-selected-dot-small {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: var(--color-accent-primary);
-  box-shadow: 0 0 8px rgba(220, 38, 38, 0.3);
+  display: block;
 }
 
-.ss-legend-dot--occupied {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+.ss-legend-box--standard {
+  background: #ffffff;
+}
+
+.ss-legend-box--love {
+  background: #ffffff;
+  width: 32px;
+}
+
+.ss-legend-box--accessible {
+  background: #ffffff;
 }
 
 .ss-max-notice {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -13,6 +13,7 @@ import {
   Heart,
 } from 'lucide-react'
 import { getMovieById, getScreeningsForMovie } from '../data/movies'
+import { fetchMovieByIdApi, fetchAllMoviesApi, fetchAllScreeningsApi } from '../services/api'
 import { isInWatchlist, toggleWatchlist } from '../data/watchlist'
 import Button from '../components/Button'
 
@@ -25,15 +26,63 @@ export default function MovieDetailsPage() {
   const outletContext = useOutletContext() || {}
   const { handleOpenAuth, showToast } = outletContext
 
-  const movie = getMovieById(id)
-  const groupedScreenings = useMemo(() => getScreeningsForMovie(id), [id])
-  const dates = Object.keys(groupedScreenings)
+  const [movie, setMovie] = useState(() => getMovieById(id))
+  const [groupedScreenings, setGroupedScreenings] = useState(() => getScreeningsForMovie(id))
 
+  const loadMovieAndScreenings = async () => {
+    try {
+      let currentMovie = await fetchMovieByIdApi(id)
+      if (!currentMovie) {
+        const allMovies = await fetchAllMoviesApi()
+        if (allMovies) {
+          currentMovie = allMovies.find((m) => String(m.id) === String(id))
+        }
+      }
+
+      if (currentMovie) {
+        setMovie(currentMovie)
+      } else {
+        setMovie(getMovieById(id))
+      }
+
+      const allScreenings = await fetchAllScreeningsApi()
+      if (allScreenings && Array.isArray(allScreenings)) {
+        const movieScreenings = allScreenings.filter((s) => String(s.movieId) === String(id))
+        const grouped = {}
+        movieScreenings.forEach((s) => {
+          if (!grouped[s.date]) grouped[s.date] = []
+          grouped[s.date].push(s)
+        })
+        setGroupedScreenings(grouped)
+      } else {
+        setGroupedScreenings(getScreeningsForMovie(id))
+      }
+    } catch (err) {
+      console.warn('Error loading movie details from API', err)
+      setMovie(getMovieById(id))
+      setGroupedScreenings(getScreeningsForMovie(id))
+    }
+  }
+
+  useEffect(() => {
+    loadMovieAndScreenings()
+
+    window.addEventListener('hype_cinema_data_changed', loadMovieAndScreenings)
+    return () => {
+      window.removeEventListener('hype_cinema_data_changed', loadMovieAndScreenings)
+    }
+  }, [id])
+
+  const dates = Object.keys(groupedScreenings)
   const [selectedDate, setSelectedDate] = useState(() => dates[0] || '')
   const activeDate = selectedDate || dates[0] || ''
 
   const userIdent = user?.email || user?.username
   const [inWatchlist, setInWatchlist] = useState(() => isInWatchlist(id, userIdent))
+
+  useEffect(() => {
+    setInWatchlist(isInWatchlist(id, user?.email || user?.username))
+  }, [id, user])
 
   const handleToggleWatchlist = () => {
     if (!user) {
@@ -72,9 +121,10 @@ export default function MovieDetailsPage() {
 
   const currentScreenings = groupedScreenings[activeDate] || []
 
-
   const formatDateLabel = (dateStr) => {
-    const d = new Date(dateStr)
+    if (!dateStr) return { dayName: '', dateFormatted: '' }
+    const parts = dateStr.split('-').map(Number)
+    const d = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(dateStr)
     const days = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun',
@@ -138,7 +188,9 @@ export default function MovieDetailsPage() {
             </div>
             <div className="md-crew-item">
               <span className="md-crew-label">Uloge:</span>
-              <span className="md-crew-value">{movie.cast.join(', ')}</span>
+              <span className="md-crew-value">
+                {Array.isArray(movie.cast) ? movie.cast.join(', ') : (movie.cast || 'Nije navedeno')}
+              </span>
             </div>
           </div>
 

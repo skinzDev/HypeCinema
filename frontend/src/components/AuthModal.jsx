@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { User, Lock, Mail, UserPlus, LogIn, Zap, CheckCircle2 } from 'lucide-react'
 import Modal from './Modal'
 import InputField from './InputField'
@@ -9,6 +9,15 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
   const { loginAsDemoUser, updateUserProfile, getRegisteredUser, loginAsAdmin } = useAuth()
   const [isLogin, setIsLogin] = useState(initialMode === 'login')
   const [authSuccessInfo, setAuthSuccessInfo] = useState(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsLogin(initialMode === 'login')
+      setError('')
+      setFieldErrors({})
+      setAuthSuccessInfo(null)
+    }
+  }, [initialMode, isOpen])
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -300,20 +309,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
       ) : (
 
         <>
-
-          <div style={{ marginBottom: '16px' }}>
-            <Button
-              type="button"
-              variant="secondary"
-              size="md"
-              fullWidth
-              onClick={handleDemoLogin}
-              style={{ borderColor: 'var(--color-accent-primary)', color: '#ffffff' }}
-            >
-              <Zap size={16} /> 1-Klik Prijava ako se prijavljujete kao korisnik
-            </Button>
-          </div>
-
           <form onSubmit={handleSubmit} className="auth-form">
             {error && <div className="auth-error-banner">{error}</div>}
 

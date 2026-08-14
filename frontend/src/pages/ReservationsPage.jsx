@@ -39,6 +39,7 @@ import {
   cancelBooking,
   calculateLoyaltyStats,
 } from '../data/bookings'
+import { fetchMyBookingsApi, cancelBookingApi } from '../services/api'
 import { getWatchlist, toggleWatchlist } from '../data/watchlist'
 import { moviesData } from '../data/movies'
 import Button from '../components/Button'
@@ -58,26 +59,26 @@ export default function ReservationsPage() {
   const [isProfileExpanded, setIsProfileExpanded] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileForm, setProfileForm] = useState({
-    firstName: user?.firstName || 'Andrija',
-    lastName: user?.lastName || 'Milovanovic',
-    email: user?.email || 'aandrijq@gmail.com',
-    city: user?.city || 'Beograd',
-    address: user?.address || 'Bulevar Mihajla Pupina 10',
-    birthDate: user?.birthDate || '15.05.1998',
-    phone: user?.phone || '+381 64 123 4567',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    city: user?.city || '',
+    address: user?.address || '',
+    birthDate: user?.birthDate || '',
+    phone: user?.phone || '',
   })
 
   // Sync profile form when user changes
   useEffect(() => {
     if (user) {
       setProfileForm({
-        firstName: user.firstName || 'Andrija',
-        lastName: user.lastName || 'Milovanovic',
-        email: user.email || 'aandrijq@gmail.com',
-        city: user.city || 'Beograd',
-        address: user.address || 'Bulevar Mihajla Pupina 10',
-        birthDate: user.birthDate || '15.05.1998',
-        phone: user.phone || '+381 64 123 4567',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        city: user.city || '',
+        address: user.address || '',
+        birthDate: user.birthDate || '',
+        phone: user.phone || '',
       })
     }
   }, [user])
@@ -116,10 +117,43 @@ export default function ReservationsPage() {
   const modalQrCanvasRef = useRef(null)
   const [copiedRef, setCopiedRef] = useState(false)
 
-  // Load data on mount
+  // Load data on mount (fetches from backend API or local storage fallback)
   useEffect(() => {
-    setBookings(getStoredBookings())
-    setWatchlistIds(getWatchlist(user?.email || user?.username))
+    async function loadData() {
+      try {
+        const apiBookings = await fetchMyBookingsApi()
+        if (apiBookings && Array.isArray(apiBookings)) {
+          const mapped = apiBookings.map((dto) => ({
+            id: dto.id,
+            ref: dto.bookingReference,
+            customerEmail: user?.email || dto.username,
+            username: dto.username,
+            customerName: user?.firstName ? `${user.firstName} ${user.lastName}` : dto.username,
+            movieTitle: dto.movieTitle,
+            poster: dto.posterUrl,
+            hall: dto.hallName,
+            date: dto.startTime ? dto.startTime.split('T')[0] : '',
+            time: dto.startTime ? dto.startTime.split('T')[1]?.substring(0, 5) : '',
+            seats: dto.seats ? dto.seats.map((s) => `${s.rowNum}-${s.seatNum}`) : [],
+            seatLabels: dto.seats
+              ? dto.seats.map((s) => `${String.fromCharCode(64 + s.rowNum)}${s.seatNum}`)
+              : [],
+            finalTotal: dto.totalPrice,
+            earnedPoints: dto.pointsEarned,
+            pointsRedeemed: dto.pointsRedeemed,
+            status: dto.status === 'CONFIRMED' ? 'ACTIVE' : dto.status,
+            createdAt: dto.createdAt,
+          }))
+          setBookings(mapped)
+        } else {
+          setBookings(getStoredBookings())
+        }
+      } catch (err) {
+        setBookings(getStoredBookings())
+      }
+      setWatchlistIds(getWatchlist(user?.email || user?.username))
+    }
+    loadData()
   }, [user])
 
   // Filter bookings belonging strictly to active user
@@ -187,8 +221,13 @@ export default function ReservationsPage() {
     setCancelModalOpen(true)
   }
 
-  const handleConfirmCancel = () => {
+  const handleConfirmCancel = async () => {
     if (!ticketToCancel) return
+    try {
+      await cancelBookingApi(ticketToCancel.id)
+    } catch (e) {
+      console.warn('Backend ticket cancel API call failed', e)
+    }
     const updated = cancelBooking(ticketToCancel.id)
     setBookings(updated)
     setCancelModalOpen(false)
@@ -238,7 +277,8 @@ export default function ReservationsPage() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-'
-    const d = new Date(dateStr)
+    const parts = dateStr.split('-').map(Number)
+    const d = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(dateStr)
     if (isNaN(d.getTime())) return dateStr
     const days = ['Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota']
     const months = [

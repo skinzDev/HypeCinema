@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -23,6 +23,7 @@ import {
 } from '../data/movies'
 import { useAuth } from '../context/AuthContext'
 import Button from '../components/Button'
+import { fetchOccupiedSeats, fetchScreeningByIdApi, fetchMovieByIdApi } from '../services/api'
 
 /** Row labels: A, B, C... */
 const rowLabel = (rowNum) => String.fromCharCode(64 + rowNum)
@@ -32,13 +33,40 @@ export default function SeatSelectionPage() {
   const navigate = useNavigate()
   const { user, isAuthenticated } = useAuth()
 
-  const screening = getScreeningById(screeningId)
-  const movie = screening ? getMovieById(screening.movieId) : null
-  const hall = screening ? hallsData[screening.hall] : null
-  const occupiedSeats = useMemo(
-    () => (screening ? getOccupiedSeats(screening.id) : []),
-    [screening]
-  )
+  const [screening, setScreening] = useState(() => getScreeningById(screeningId))
+  const [movie, setMovie] = useState(() => (screening ? getMovieById(screening.movieId) : null))
+  const hall = screening ? (hallsData[screening.hall] || hallsData['Sala 1 - IMAX']) : null
+
+  const [occupiedSeats, setOccupiedSeats] = useState(() => (screening ? getOccupiedSeats(screening.id) : []))
+
+  useEffect(() => {
+    async function loadScreeningDetails() {
+      let scr = getScreeningById(screeningId)
+      if (!scr) {
+        scr = await fetchScreeningByIdApi(screeningId)
+      }
+      if (scr) {
+        setScreening(scr)
+        let mov = getMovieById(scr.movieId)
+        if (!mov) {
+          mov = await fetchMovieByIdApi(scr.movieId)
+        }
+        if (mov) setMovie(mov)
+
+        const initialSeats = getOccupiedSeats(scr.id)
+        setOccupiedSeats(initialSeats)
+
+        fetchOccupiedSeats(scr.id).then((apiSeats) => {
+          if (apiSeats && apiSeats.length > 0) {
+            setOccupiedSeats(Array.from(new Set([...initialSeats, ...apiSeats])))
+          }
+        })
+      }
+    }
+
+    loadScreeningDetails()
+  }, [screeningId])
+
   const occupiedSet = useMemo(() => new Set(occupiedSeats), [occupiedSeats])
 
   const [selectedSeats, setSelectedSeats] = useState([])
@@ -103,7 +131,9 @@ export default function SeatSelectionPage() {
   }
 
   const formatDate = (dateStr) => {
-    const d = new Date(dateStr)
+    if (!dateStr) return ''
+    const parts = dateStr.split('-').map(Number)
+    const d = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(dateStr)
     const days = ['Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota']
     const months = [
       'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
@@ -147,18 +177,21 @@ export default function SeatSelectionPage() {
       <div className="ss-layout">
         {/* LEFT: Cinema Hall Map */}
         <div className="ss-hall-section">
-          {/* Screen indicator */}
+          {/* Screen indicator (Curved Arc matching screenshot) */}
           <div className="ss-screen-wrapper">
-            <div className="ss-screen">
-              <span>PLATNO</span>
-            </div>
-            <div className="ss-screen-glow" />
+            <svg viewBox="0 0 500 40" className="ss-screen-arc-svg">
+              <path d="M 10 35 Q 250 5 490 35" fill="none" stroke="rgba(255, 255, 255, 0.85)" strokeWidth="3" />
+            </svg>
+            <span className="ss-screen-text">PLATNO</span>
           </div>
 
-          {/* Seat grid */}
+          {/* Seat grid (Rows ordered H down to A, matching screenshot) */}
           <div className="ss-seat-grid" style={{ '--cols': hall.seatsPerRow }}>
             {Array.from({ length: hall.rows }, (_, rowIdx) => {
-              const rowNum = rowIdx + 1
+              const rowNum = hall.rows - rowIdx // Top row is H/highest, bottom row is A/1
+              const isWheelchairRow = rowNum === 1
+              const isLoveRow = rowNum === Math.floor(hall.rows / 2)
+
               return (
                 <div key={rowNum} className="ss-seat-row">
                   <span className="ss-row-label">{rowLabel(rowNum)}</span>
@@ -174,6 +207,8 @@ export default function SeatSelectionPage() {
                       if (isOccupied) seatClass += ' ss-seat--occupied'
                       else if (isSelected) seatClass += ' ss-seat--selected'
                       else seatClass += ' ss-seat--available'
+                      if (isLoveRow) seatClass += ' ss-seat--love'
+                      if (isWheelchairRow && seatNum <= 2) seatClass += ' ss-seat--accessible'
                       if (isHovered && !isOccupied) seatClass += ' ss-seat--hovered'
 
                       return (
@@ -191,7 +226,13 @@ export default function SeatSelectionPage() {
                           }
                           aria-label={`Sedište ${rowLabel(rowNum)}${seatNum}`}
                         >
-                          {seatNum}
+                          {isSelected ? (
+                            <span className="ss-selected-dot" />
+                          ) : isWheelchairRow && seatNum <= 2 ? (
+                            '♿'
+                          ) : (
+                            seatNum
+                          )}
                         </button>
                       )
                     })}
@@ -202,19 +243,29 @@ export default function SeatSelectionPage() {
             })}
           </div>
 
-          {/* Legend */}
+          {/* Legend (Cineplexx Style Bar matching user screenshot) */}
           <div className="ss-legend">
             <div className="ss-legend-item">
-              <span className="ss-legend-dot ss-legend-dot--available" />
-              <span>Slobodno</span>
+              <span className="ss-legend-box ss-legend-box--occupied" />
+              <span>ZAUZETO</span>
             </div>
             <div className="ss-legend-item">
-              <span className="ss-legend-dot ss-legend-dot--selected" />
-              <span>Izabrano</span>
+              <span className="ss-legend-box ss-legend-box--selected">
+                <span className="ss-selected-dot-small" />
+              </span>
+              <span>IZABRANO</span>
             </div>
             <div className="ss-legend-item">
-              <span className="ss-legend-dot ss-legend-dot--occupied" />
-              <span>Zauzeto</span>
+              <span className="ss-legend-box ss-legend-box--standard" />
+              <span>STANDARD</span>
+            </div>
+            <div className="ss-legend-item">
+              <span className="ss-legend-box ss-legend-box--love">❤️</span>
+              <span>LJUBAVNO SEDIŠTE</span>
+            </div>
+            <div className="ss-legend-item">
+              <span className="ss-legend-box ss-legend-box--accessible">♿</span>
+              <span>SEDIŠTE ZA OSOBE SA INVALIDITETOM</span>
             </div>
           </div>
 

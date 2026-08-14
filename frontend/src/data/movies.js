@@ -240,39 +240,55 @@ export function getOccupiedSeats(screeningId) {
   const hall = hallsData[screening.hall]
   if (!hall) return []
 
-  const totalSeats = hall.totalSeats
-  const occupiedCount = totalSeats - (screening.seatsAvailable ?? totalSeats)
-  const occupied = []
+  const occupied = new Set()
 
-  // Deterministic pseudo-random based on screeningId
-  let seed = screeningId * 2654435761
-  const pseudoRandom = () => {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff
-    return seed / 0x7fffffff
-  }
-
-  const allSeats = []
-  for (let r = 1; r <= hall.rows; r++) {
-    for (let s = 1; s <= hall.seatsPerRow; s++) {
-      allSeats.push(`${r}-${s}`)
+  // 1. Read from global shared occupied seats key across all sessions/accounts
+  try {
+    const rawGlobal = localStorage.getItem('hype_cinema_global_occupied_seats')
+    if (rawGlobal) {
+      const globalData = JSON.parse(rawGlobal)
+      const screeningSeats = globalData[screeningId] || []
+      screeningSeats.forEach((s) => occupied.add(s))
     }
+  } catch (e) {
+    console.error('Failed to read global occupied seats', e)
   }
 
-  // Shuffle and pick first N occupied
-  for (let i = allSeats.length - 1; i > 0; i--) {
-    const j = Math.floor(pseudoRandom() * (i + 1))
-    ;[allSeats[i], allSeats[j]] = [allSeats[j], allSeats[i]]
+  // 2. Read from all stored user bookings for this screeningId
+  try {
+    const rawBookings = localStorage.getItem('hype_cinema_user_bookings')
+    if (rawBookings) {
+      const bookings = JSON.parse(rawBookings)
+      bookings
+        .filter((b) => Number(b.screeningId) === Number(screeningId) && b.status !== 'CANCELLED')
+        .forEach((b) => {
+          if (Array.isArray(b.seats)) {
+            b.seats.forEach((seat) => occupied.add(seat))
+          }
+        })
+    }
+  } catch (e) {
+    console.error('Failed to read bookings for occupied seats', e)
   }
 
-  for (let i = 0; i < Math.min(occupiedCount, allSeats.length); i++) {
-    occupied.push(allSeats[i])
-  }
-
-  return occupied
+  return Array.from(occupied)
 }
 
 const MOVIES_STORAGE_KEY = 'hype_cinema_movies'
 const SCREENINGS_STORAGE_KEY = 'hype_cinema_screenings'
+
+/**
+ * Broadcast change event helper
+ */
+function notifyDataChanged() {
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('hype_cinema_data_changed'))
+    }
+  } catch (e) {
+    // Ignore in non-browser env
+  }
+}
 
 /**
  * Get all stored movies (with fallback to default mock array)
@@ -284,15 +300,25 @@ export function getStoredMovies() {
       localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(moviesData))
       return moviesData
     }
-    return JSON.parse(raw)
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : moviesData
   } catch (err) {
     return moviesData
   }
 }
 
+export function setStoredMovies(movies) {
+  try {
+    localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(movies))
+    notifyDataChanged()
+  } catch (e) {
+    console.error('Failed to set stored movies', e)
+  }
+}
+
 export function addMovie(data) {
   const movies = getStoredMovies()
-  const newId = movies.length > 0 ? Math.max(...movies.map((m) => m.id)) + 1 : 1
+  const newId = movies.length > 0 ? Math.max(...movies.map((m) => Number(m.id) || 0)) + 1 : 1
   const newMovie = {
     id: newId,
     rating: 8.0,
@@ -303,21 +329,21 @@ export function addMovie(data) {
     ...data,
   }
   const updated = [newMovie, ...movies]
-  localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(updated))
+  setStoredMovies(updated)
   return updated
 }
 
 export function updateMovie(id, data) {
   const movies = getStoredMovies()
-  const updated = movies.map((m) => (m.id === Number(id) ? { ...m, ...data } : m))
-  localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(updated))
+  const updated = movies.map((m) => (String(m.id) === String(id) ? { ...m, ...data } : m))
+  setStoredMovies(updated)
   return updated
 }
 
 export function deleteMovie(id) {
   const movies = getStoredMovies()
-  const updated = movies.filter((m) => m.id !== Number(id))
-  localStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(updated))
+  const updated = movies.filter((m) => String(m.id) !== String(id))
+  setStoredMovies(updated)
   return updated
 }
 
@@ -332,21 +358,24 @@ export function getStoredScreenings() {
       return screeningsData
     }
     const parsed = JSON.parse(raw)
-    // If cached screenings in localStorage are old or lack multi-cinema mappings, refresh from screeningsData
-    if (!Array.isArray(parsed) || parsed.length < 30 || !parsed.some((s) => s.cinemaId && s.cinemaId !== 'BEOGRAD')) {
-      localStorage.setItem(SCREENINGS_STORAGE_KEY, JSON.stringify(screeningsData))
-      return screeningsData
-    }
-    return parsed
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : screeningsData
   } catch (err) {
     return screeningsData
   }
 }
 
+export function setStoredScreenings(screenings) {
+  try {
+    localStorage.setItem(SCREENINGS_STORAGE_KEY, JSON.stringify(screenings))
+    notifyDataChanged()
+  } catch (e) {
+    console.error('Failed to set stored screenings', e)
+  }
+}
 
 export function addScreening(data) {
   const screenings = getStoredScreenings()
-  const newId = screenings.length > 0 ? Math.max(...screenings.map((s) => s.id)) + 1 : 1
+  const newId = screenings.length > 0 ? Math.max(...screenings.map((s) => Number(s.id) || 0)) + 1 : 1
   const hall = hallsData[data.hall]
   const totalSeats = hall ? hall.totalSeats : 120
   const newScreening = {
@@ -356,30 +385,30 @@ export function addScreening(data) {
     ...data,
   }
   const updated = [newScreening, ...screenings]
-  localStorage.setItem(SCREENINGS_STORAGE_KEY, JSON.stringify(updated))
+  setStoredScreenings(updated)
   return updated
 }
 
 export function deleteScreening(id) {
   const screenings = getStoredScreenings()
-  const updated = screenings.filter((s) => s.id !== Number(id))
-  localStorage.setItem(SCREENINGS_STORAGE_KEY, JSON.stringify(updated))
+  const updated = screenings.filter((s) => String(s.id) !== String(id))
+  setStoredScreenings(updated)
   return updated
 }
 
 export function getMovieById(id) {
   const movies = getStoredMovies()
-  return movies.find((m) => m.id === Number(id))
+  return movies.find((m) => String(m.id) === String(id)) || null
 }
 
 export function getScreeningById(id) {
   const screenings = getStoredScreenings()
-  return screenings.find((s) => s.id === Number(id))
+  return screenings.find((s) => String(s.id) === String(id)) || null
 }
 
 export function getScreeningsForMovie(movieId) {
   const screenings = getStoredScreenings()
-  const movieScreenings = screenings.filter((s) => s.movieId === Number(movieId))
+  const movieScreenings = screenings.filter((s) => String(s.movieId) === String(movieId))
   const grouped = {}
   movieScreenings.forEach((s) => {
     if (!grouped[s.date]) grouped[s.date] = []

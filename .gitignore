@@ -16,6 +16,7 @@ build/
 frontend/.vite/
 .eslintcache
 .cache/
+.skills/
 
 # --- Logs & Environment ---
 *.log

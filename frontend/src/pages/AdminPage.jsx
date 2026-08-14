@@ -29,9 +29,20 @@ import {
   hallsData,
 } from '../data/movies'
 import { getStoredBookings } from '../data/bookings'
+import {
+  fetchAllBookingsApi,
+  fetchAllMoviesApi,
+  createMovieApi,
+  updateMovieApi,
+  deleteMovieApi,
+  fetchAllScreeningsApi,
+  createScreeningApi,
+  deleteScreeningApi,
+} from '../services/api'
 import Button from '../components/Button'
 import Modal from '../components/Modal'
 import InputField from '../components/InputField'
+import SelectField from '../components/SelectField'
 
 export default function AdminPage() {
   const { user, isAdmin, loginAsAdmin } = useAuth()
@@ -53,13 +64,17 @@ export default function AdminPage() {
     genre: 'Akcija',
     duration: 120,
     director: '',
+    cast: '',
+    rating: 8.0,
+    releaseDate: new Date().toISOString().split('T')[0],
     status: 'NOW_SHOWING',
-    poster: '/posters/spiderman.png',
+    poster: '',
   })
 
   const [screeningModalOpen, setScreeningModalOpen] = useState(false)
   const [screeningForm, setScreeningForm] = useState({
     movieId: 1,
+    cinemaId: 'BEOGRAD',
     hall: 'Sala 1 - IMAX',
     date: '2026-08-15',
     time: '18:00',
@@ -69,12 +84,70 @@ export default function AdminPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null) // { type: 'MOVIE'|'SCREENING', item: ... }
 
-  // Load data on mount
+  // Load data on mount and on broadcast
+  const loadAllAdminData = async () => {
+    try {
+      const [apiMovies, apiScreenings, apiBookings] = await Promise.all([
+        fetchAllMoviesApi(),
+        fetchAllScreeningsApi(),
+        fetchAllBookingsApi(),
+      ])
+
+      if (apiMovies && apiMovies.length > 0) {
+        setMovies(apiMovies)
+      } else {
+        setMovies(getStoredMovies())
+      }
+
+      if (apiScreenings && apiScreenings.length > 0) {
+        setScreenings(apiScreenings)
+      } else {
+        setScreenings(getStoredScreenings())
+      }
+
+      if (apiBookings && Array.isArray(apiBookings)) {
+        const mapped = apiBookings.map((dto) => ({
+          id: dto.id,
+          ref: dto.bookingReference,
+          customerEmail: dto.username,
+          customerName: dto.username,
+          movieTitle: dto.movieTitle,
+          poster: dto.posterUrl,
+          hall: dto.hallName,
+          date: dto.startTime ? dto.startTime.split('T')[0] : '',
+          time: dto.startTime ? dto.startTime.split('T')[1]?.substring(0, 5) : '',
+          seats: dto.seats ? dto.seats.map((s) => `${s.rowNum}-${s.seatNum}`) : [],
+          seatLabels: dto.seats
+            ? dto.seats.map((s) => `${String.fromCharCode(64 + s.rowNum)}${s.seatNum}`)
+            : [],
+          finalTotal: dto.totalPrice,
+          earnedPoints: dto.pointsEarned,
+          redeemedPoints: dto.pointsRedeemed,
+          discountAmount: dto.discountAmount,
+          createdAt: dto.createdAt,
+          status: dto.status,
+        }))
+        setBookings(mapped)
+      } else {
+        setBookings(getStoredBookings())
+      }
+    } catch (err) {
+      console.error('Error loading admin data:', err)
+      setMovies(getStoredMovies())
+      setScreenings(getStoredScreenings())
+      setBookings(getStoredBookings())
+    }
+  }
+
   useEffect(() => {
-    setMovies(getStoredMovies())
-    setScreenings(getStoredScreenings())
-    setBookings(getStoredBookings())
+    loadAllAdminData()
+
+    window.addEventListener('hype_cinema_data_changed', loadAllAdminData)
+    return () => {
+      window.removeEventListener('hype_cinema_data_changed', loadAllAdminData)
+    }
   }, [])
+
 
   // Calculated KPI stats
   const kpis = useMemo(() => {
@@ -97,8 +170,11 @@ export default function AdminPage() {
       genre: 'Akcija',
       duration: 120,
       director: '',
+      cast: '',
+      rating: 8.0,
+      releaseDate: new Date().toISOString().split('T')[0],
       status: 'NOW_SHOWING',
-      poster: '/posters/spiderman.png',
+      poster: '',
     })
     setMovieModalOpen(true)
   }
@@ -111,23 +187,34 @@ export default function AdminPage() {
       genre: movie.genre || 'Akcija',
       duration: movie.duration || 120,
       director: movie.director || '',
+      cast: Array.isArray(movie.cast) ? movie.cast.join(', ') : (movie.cast || ''),
+      rating: movie.rating || 8.0,
+      releaseDate: movie.releaseDate || new Date().toISOString().split('T')[0],
       status: movie.status || 'NOW_SHOWING',
-      poster: movie.poster || '/posters/spiderman.png',
+      poster: movie.poster || '',
     })
     setMovieModalOpen(true)
   }
 
-  const handleSaveMovie = (e) => {
+  const handleSaveMovie = async (e) => {
     e.preventDefault()
     if (!movieForm.title.trim()) return
 
+    const payload = {
+      ...movieForm,
+      duration: Number(movieForm.duration) || 120,
+      rating: Number(movieForm.rating) || 8.0,
+      poster: movieForm.poster || '/posters/spiderman.png',
+      releaseDate: movieForm.releaseDate || new Date().toISOString().split('T')[0],
+    }
+
     if (editingMovie) {
-      const updated = updateMovie(editingMovie.id, movieForm)
-      setMovies(updated)
-      if (showToast) showToast(`Film "${movieForm.title}" je uspešno izmenjen.`, 'success')
+      await updateMovieApi(editingMovie.id, payload)
+      setMovies(getStoredMovies())
+      if (showToast) showToast(`Film "${movieForm.title}" je uspešno ažuriran!`, 'success')
     } else {
-      const updated = addMovie(movieForm)
-      setMovies(updated)
+      await createMovieApi(payload)
+      setMovies(getStoredMovies())
       if (showToast) showToast(`Novi film "${movieForm.title}" je uspešno dodat!`, 'success')
     }
     setMovieModalOpen(false)
@@ -142,6 +229,7 @@ export default function AdminPage() {
   const handleOpenAddScreening = () => {
     setScreeningForm({
       movieId: movies[0]?.id || 1,
+      cinemaId: 'BEOGRAD',
       hall: 'Sala 1 - IMAX',
       date: new Date().toISOString().split('T')[0],
       time: '18:00',
@@ -150,18 +238,13 @@ export default function AdminPage() {
     setScreeningModalOpen(true)
   }
 
-  const handleSaveScreening = (e) => {
+  const handleSaveScreening = async (e) => {
     e.preventDefault()
-    const updated = addScreening({
-      movieId: Number(screeningForm.movieId),
-      hall: screeningForm.hall,
-      date: screeningForm.date,
-      time: screeningForm.time,
-      price: Number(screeningForm.price),
-    })
-    setScreenings(updated)
-    setScreeningModalOpen(false)
+
+    await createScreeningApi(screeningForm)
+    setScreenings(getStoredScreenings())
     if (showToast) showToast('Nova projekcija je uspešno zakazana!', 'success')
+    setScreeningModalOpen(false)
   }
 
   const handlePromptDeleteScreening = (screening) => {
@@ -170,22 +253,22 @@ export default function AdminPage() {
   }
 
   // --- Confirm Delete ---
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleteTarget) return
 
     if (deleteTarget.type === 'MOVIE') {
-      const updated = deleteMovie(deleteTarget.item.id)
-      setMovies(updated)
+      await deleteMovieApi(deleteTarget.item.id)
+      setMovies(getStoredMovies())
       if (showToast) showToast(`Film "${deleteTarget.item.title}" je obrisan.`, 'info')
     } else if (deleteTarget.type === 'SCREENING') {
-      const updated = deleteScreening(deleteTarget.item.id)
-      setScreenings(updated)
-      if (showToast) showToast('Projekcija je uklonjena.', 'info')
+      await deleteScreeningApi(deleteTarget.item.id)
+      setScreenings(getStoredScreenings())
+      if (showToast) showToast('Projekcija je obrisana.', 'info')
     }
-
     setDeleteConfirmOpen(false)
     setDeleteTarget(null)
   }
+
 
   // Filtered list helpers
   const filteredMovies = useMemo(() => {
@@ -367,6 +450,7 @@ export default function AdminPage() {
                 <tr>
                   <th>ID</th>
                   <th>Film</th>
+                  <th>Bioskop</th>
                   <th>Sala</th>
                   <th>Datum</th>
                   <th>Vreme</th>
@@ -384,6 +468,7 @@ export default function AdminPage() {
                       <td>
                         <strong>{m ? m.title : `Film ID: ${s.movieId}`}</strong>
                       </td>
+                      <td>{s.cinemaId || 'BEOGRAD'}</td>
                       <td>{s.hall}</td>
                       <td>{s.date}</td>
                       <td>{s.time}</td>
@@ -484,22 +569,21 @@ export default function AdminPage() {
           />
 
           <div className="admin-form-row">
-            <div className="input-field-wrapper">
-              <label className="input-label">Žanr</label>
-              <select
-                className="input-field"
-                value={movieForm.genre}
-                onChange={(e) => setMovieForm({ ...movieForm, genre: e.target.value })}
-              >
-                <option value="Akcija">Akcija</option>
-                <option value="Sci-Fi">Sci-Fi</option>
-                <option value="Triler">Triler</option>
-                <option value="Drama">Drama</option>
-                <option value="Komedija">Komedija</option>
-                <option value="Animacija">Animacija</option>
-                <option value="Horor">Horor</option>
-              </select>
-            </div>
+            <SelectField
+              label="Žanr"
+              value={movieForm.genre}
+              onChange={(e) => setMovieForm({ ...movieForm, genre: e.target.value })}
+              options={[
+                { value: 'Akcija', label: 'Akcija' },
+                { value: 'Sci-Fi', label: 'Sci-Fi' },
+                { value: 'Triler', label: 'Triler' },
+                { value: 'Drama', label: 'Drama' },
+                { value: 'Komedija', label: 'Komedija' },
+                { value: 'Animacija', label: 'Animacija' },
+                { value: 'Horor', label: 'Horor' },
+              ]}
+              required
+            />
 
             <InputField
               label="Trajanje (minuti)"
@@ -518,30 +602,54 @@ export default function AdminPage() {
               onChange={(e) => setMovieForm({ ...movieForm, director: e.target.value })}
             />
 
-            <div className="input-field-wrapper">
-              <label className="input-label">Status</label>
-              <select
-                className="input-field"
-                value={movieForm.status}
-                onChange={(e) => setMovieForm({ ...movieForm, status: e.target.value })}
-              >
-                <option value="NOW_SHOWING">NA REPERTOARU</option>
-                <option value="COMING_SOON">USKORO</option>
-              </select>
-            </div>
+            <SelectField
+              label="Status Filma"
+              value={movieForm.status}
+              onChange={(e) => setMovieForm({ ...movieForm, status: e.target.value })}
+              options={[
+                { value: 'NOW_SHOWING', label: 'NA REPERTOARU (Now Showing)' },
+                { value: 'COMING_SOON', label: 'USKORO (Coming Soon)' },
+              ]}
+              required
+            />
           </div>
 
           <InputField
             label="Poster Slika (URL)"
+            placeholder="https://example.com/poster.jpg"
             value={movieForm.poster}
             onChange={(e) => setMovieForm({ ...movieForm, poster: e.target.value })}
-            required
           />
 
-          <div className="input-field-wrapper">
-            <label className="input-label">Opis Filma</label>
+          <div className="admin-form-row">
+            <InputField
+              label="Glumci (odvojeni zarezom)"
+              placeholder="Npr. Tom Holland, Zendaya"
+              value={movieForm.cast}
+              onChange={(e) => setMovieForm({ ...movieForm, cast: e.target.value })}
+            />
+
+            <InputField
+              label="Ocena (1-10)"
+              type="number"
+              step="0.1"
+              value={movieForm.rating}
+              onChange={(e) => setMovieForm({ ...movieForm, rating: e.target.value })}
+            />
+          </div>
+
+          <InputField
+            label="Datum premijere"
+            type="date"
+            value={movieForm.releaseDate}
+            onChange={(e) => setMovieForm({ ...movieForm, releaseDate: e.target.value })}
+          />
+
+          <div className="select-field">
+            <label className="input-field-label">Opis Filma</label>
             <textarea
-              className="input-field admin-textarea"
+              className="select-field-input admin-textarea"
+              style={{ minHeight: '100px', cursor: 'text', resize: 'vertical' }}
               rows={4}
               placeholder="Unesite kratak opis i sinopsis..."
               value={movieForm.description}
@@ -568,34 +676,41 @@ export default function AdminPage() {
         maxWidth="500px"
       >
         <form onSubmit={handleSaveScreening} className="admin-form">
-          <div className="input-field-wrapper">
-            <label className="input-label">Izaberite Film</label>
-            <select
-              className="input-field"
-              value={screeningForm.movieId}
-              onChange={(e) => setScreeningForm({ ...screeningForm, movieId: e.target.value })}
-            >
-              {movies.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.title} ({m.genre})
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Izaberite Film"
+            value={screeningForm.movieId}
+            onChange={(e) => setScreeningForm({ ...screeningForm, movieId: e.target.value })}
+            options={movies.map((m) => ({
+              value: m.id,
+              label: `${m.title} (${m.genre})`,
+            }))}
+            required
+          />
 
-          <div className="input-field-wrapper">
-            <label className="input-label">Sala Bioskopa</label>
-            <select
-              className="input-field"
+          <div className="admin-form-row">
+            <SelectField
+              label="Bioskop (Grad)"
+              value={screeningForm.cinemaId || 'BEOGRAD'}
+              onChange={(e) => setScreeningForm({ ...screeningForm, cinemaId: e.target.value })}
+              options={[
+                { value: 'BEOGRAD', label: 'Beograd - Galerija' },
+                { value: 'NOVI_SAD', label: 'Novi Sad - Promenada' },
+                { value: 'NIS', label: 'Niš - Delta' },
+                { value: 'KRAGUJEVAC', label: 'Kragujevac - Plaza' },
+              ]}
+              required
+            />
+
+            <SelectField
+              label="Sala Bioskopa"
               value={screeningForm.hall}
               onChange={(e) => setScreeningForm({ ...screeningForm, hall: e.target.value })}
-            >
-              {Object.keys(hallsData).map((h) => (
-                <option key={h} value={h}>
-                  {h}
-                </option>
-              ))}
-            </select>
+              options={Object.keys(hallsData).map((h) => ({
+                value: h,
+                label: h,
+              }))}
+              required
+            />
           </div>
 
           <div className="admin-form-row">

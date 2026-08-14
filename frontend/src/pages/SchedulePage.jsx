@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import {
   MapPin,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { cinemasData } from '../data/cinemas'
 import { getStoredMovies, getStoredScreenings } from '../data/movies'
+import { fetchAllMoviesApi, fetchAllScreeningsApi } from '../services/api'
 import Button from '../components/Button'
 import Modal from '../components/Modal'
 
@@ -25,8 +26,35 @@ export default function SchedulePage() {
   const outletContext = useOutletContext() || {}
   const { showToast } = outletContext
 
-  const movies = useMemo(() => getStoredMovies(), [])
-  const screenings = useMemo(() => getStoredScreenings(), [])
+  const [movies, setMovies] = useState(() => getStoredMovies())
+  const [screenings, setScreenings] = useState(() => getStoredScreenings())
+
+  const loadData = async () => {
+    try {
+      const [apiMovies, apiScreenings] = await Promise.all([
+        fetchAllMoviesApi(),
+        fetchAllScreeningsApi(),
+      ])
+      if (apiMovies && apiMovies.length > 0) setMovies(apiMovies)
+      else setMovies(getStoredMovies())
+
+      if (apiScreenings && apiScreenings.length > 0) setScreenings(apiScreenings)
+      else setScreenings(getStoredScreenings())
+    } catch (err) {
+      console.warn('Error loading schedule from backend', err)
+      setMovies(getStoredMovies())
+      setScreenings(getStoredScreenings())
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+
+    window.addEventListener('hype_cinema_data_changed', loadData)
+    return () => {
+      window.removeEventListener('hype_cinema_data_changed', loadData)
+    }
+  }, [])
 
   // Filter States
   const [selectedCinema, setSelectedCinema] = useState('ALL')
@@ -36,27 +64,52 @@ export default function SchedulePage() {
   // Modal State for Cinema Details
   const [selectedCinemaInfo, setSelectedCinemaInfo] = useState(null)
 
-
   // Filter cinemas list based on top dropdown
   const filteredCinemas = useMemo(() => {
     if (selectedCinema === 'ALL') return cinemasData
     return cinemasData.filter((c) => c.id === selectedCinema)
   }, [selectedCinema])
 
+  // Dynamic date options based on available screenings
+  const dateOptions = useMemo(() => {
+    const datesSet = new Set(screenings.map((s) => s.date).filter(Boolean))
+    const sorted = Array.from(datesSet).sort()
+    if (sorted.length === 0) {
+      return [
+        { value: '2026-08-11', label: '11. Avgust' },
+        { value: '2026-08-12', label: '12. Avgust' },
+        { value: '2026-08-13', label: '13. Avgust' },
+        { value: '2026-08-14', label: '14. Avgust' },
+      ]
+    }
+    const days = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun',
+      'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'
+    ]
+    return sorted.map((dStr) => {
+      const parts = dStr.split('-').map(Number)
+      const d = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(dStr)
+      return {
+        value: dStr,
+        label: `${days[d.getDay()]}, ${d.getDate()}. ${months[d.getMonth()]}`,
+      }
+    })
+  }, [screenings])
+
   // Get movies and screenings for a specific cinema and selected date
   const getCinemaSchedule = (cinemaId) => {
     // Get screenings matching cinema & date
     const cinemaScreenings = screenings.filter((s) => {
-      const matchesCinema = s.cinemaId === cinemaId
-      const matchesDate = s.date === selectedDate
+      const matchesCinema = selectedCinema === 'ALL' || s.cinemaId === cinemaId || !s.cinemaId
+      const matchesDate = s.date === selectedDate || !selectedDate
       return matchesCinema && matchesDate
     })
-
 
     // Group screenings by movieId
     const moviesMap = {}
     cinemaScreenings.forEach((scr) => {
-      const movie = movies.find((m) => m.id === scr.movieId)
+      const movie = movies.find((m) => String(m.id) === String(scr.movieId))
       if (!movie) return
 
       // Apply search filter if query entered
@@ -78,13 +131,6 @@ export default function SchedulePage() {
 
     return Object.values(moviesMap)
   }
-
-  const dateOptions = [
-    { value: '2026-08-11', label: 'Danas (11. Avgust)' },
-    { value: '2026-08-12', label: 'Sutra (12. Avgust)' },
-    { value: '2026-08-13', label: 'Sreda (13. Avgust)' },
-    { value: '2026-08-14', label: 'Četvrtak (14. Avgust)' },
-  ]
 
   return (
     <div className="schedule-page">

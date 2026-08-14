@@ -138,7 +138,24 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  const loginAsAdmin = () => {
+  const loginAsAdmin = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernameOrEmail: 'admin', password: 'admin123' }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.token) {
+          localStorage.setItem('token', data.token)
+          setToken(data.token)
+        }
+      }
+    } catch (err) {
+      console.warn('Backend loginAsAdmin failed, using offline fallback', err)
+    }
+
     const adminUser = {
       username: 'admin',
       role: 'ROLE_ADMIN',
@@ -149,13 +166,30 @@ export function AuthProvider({ children }) {
       address: 'Knez Mihailova 1',
       birthDate: '01.01.1990',
       phone: '+381 11 100 200',
-      loyaltyPoints: 0,
-      tier: 'BRONZE',
+      loyaltyPoints: 1850,
+      tier: 'GOLD',
     }
     updateUserProfile(adminUser)
   }
 
-  const loginAsDemoUser = () => {
+  const loginAsDemoUser = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernameOrEmail: 'john_doe', password: 'user123' }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.token) {
+          localStorage.setItem('token', data.token)
+          setToken(data.token)
+        }
+      }
+    } catch (err) {
+      console.warn('Backend loginAsDemoUser failed, using offline fallback', err)
+    }
+
     const demoUser = {
       username: 'andrija_m',
       role: 'ROLE_USER',
@@ -166,8 +200,8 @@ export function AuthProvider({ children }) {
       address: 'Bulevar Mihajla Pupina 10',
       birthDate: '15.05.1998',
       phone: '+381 64 123 4567',
-      loyaltyPoints: 0,
-      tier: 'BRONZE',
+      loyaltyPoints: 650,
+      tier: 'SILVER',
     }
     updateUserProfile(demoUser)
   }

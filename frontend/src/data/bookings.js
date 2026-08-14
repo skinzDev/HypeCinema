@@ -5,98 +5,8 @@
 
 const STORAGE_KEY = 'hype_cinema_user_bookings'
 
-// Initial mock bookings for demonstration purposes
-const INITIAL_MOCK_BOOKINGS = [
-  {
-    id: 'bk-101',
-    ref: 'HC-8K9N2M1P',
-    movieId: 1, // Dune: Part Two
-    screeningId: 1,
-    movieTitle: 'Dune: Part Two',
-    poster: '/posters/dune2.png',
-    hall: 'Sala 1 - IMAX',
-    date: '2026-08-11',
-    time: '14:00',
-    seats: ['5-7', '5-8'], // E7, E8
-    seatLabels: ['E7', 'E8'],
-    pricePerTicket: 900,
-    baseTotal: 1800,
-    pointsRedeemed: 100,
-    finalTotal: 1700,
-    earnedPoints: 170,
-    customerName: 'Marko Marković',
-    customerEmail: 'marko@example.com',
-    status: 'ACTIVE', // 'ACTIVE', 'COMPLETED', 'CANCELLED'
-    createdAt: '2026-08-10T14:22:00.000Z',
-  },
-  {
-    id: 'bk-102',
-    ref: 'HC-3F7J9L4Q',
-    movieId: 2, // Joker: Folie à Deux
-    screeningId: 7,
-    movieTitle: 'Joker: Folie à Deux',
-    poster: '/posters/joker2.png',
-    hall: 'Sala 3 - VIP',
-    date: '2026-08-11',
-    time: '19:30',
-    seats: ['3-4'], // C4
-    seatLabels: ['C4'],
-    pricePerTicket: 1200,
-    baseTotal: 1200,
-    pointsRedeemed: 0,
-    finalTotal: 1200,
-    earnedPoints: 120,
-    customerName: 'Marko Marković',
-    customerEmail: 'marko@example.com',
-    status: 'ACTIVE',
-    createdAt: '2026-08-11T09:15:00.000Z',
-  },
-  {
-    id: 'bk-103',
-    ref: 'HC-9X2V4B7N',
-    movieId: 4, // Inside Out 2
-    screeningId: 12,
-    movieTitle: 'Inside Out 2',
-    poster: '/posters/insideout2.png',
-    hall: 'Sala 2 - Standard',
-    date: '2026-08-01',
-    time: '13:00',
-    seats: ['4-5', '4-6', '4-7'], // D5, D6, D7
-    seatLabels: ['D5', 'D6', 'D7'],
-    pricePerTicket: 700,
-    baseTotal: 2100,
-    pointsRedeemed: 300,
-    finalTotal: 1800,
-    earnedPoints: 180,
-    customerName: 'Marko Marković',
-    customerEmail: 'marko@example.com',
-    status: 'COMPLETED',
-    createdAt: '2026-07-30T11:00:00.000Z',
-  },
-  {
-    id: 'bk-104',
-    ref: 'HC-1M4P8T2Z',
-    movieId: 6, // Deadpool & Wolverine
-    screeningId: 17,
-    movieTitle: 'Deadpool & Wolverine',
-    poster: '/posters/deadpool.png',
-    hall: 'Sala 2 - Standard',
-    date: '2026-07-25',
-    time: '11:00',
-    seats: ['6-8'], // F8
-    seatLabels: ['F8'],
-    pricePerTicket: 600,
-    baseTotal: 600,
-    pointsRedeemed: 0,
-    finalTotal: 600,
-    earnedPoints: 60,
-    customerName: 'Marko Marković',
-    customerEmail: 'marko@example.com',
-    status: 'CANCELLED',
-    createdAt: '2026-07-24T18:30:00.000Z',
-    cancelledAt: '2026-07-24T19:00:00.000Z',
-  },
-]
+// Initial mock bookings — empty by default for real user integration
+const INITIAL_MOCK_BOOKINGS = []
 
 /**
  * Get all stored bookings from localStorage, defaulting to initial mock bookings.
@@ -118,6 +28,11 @@ export function getStoredBookings() {
 /**
  * Save a new booking to localStorage.
  */
+import { addGlobalOccupiedSeats, createBookingApi } from '../services/api'
+
+/**
+ * Save a new booking to localStorage and global shared occupied seats.
+ */
 export function addBooking(bookingData) {
   const current = getStoredBookings()
   const newBooking = {
@@ -132,6 +47,25 @@ export function addBooking(bookingData) {
   } catch (err) {
     console.error('Failed to save booking', err)
   }
+
+  // Register seat keys in global occupied store for this screeningId
+  if (bookingData.screeningId && Array.isArray(bookingData.seats)) {
+    addGlobalOccupiedSeats(bookingData.screeningId, bookingData.seats)
+  }
+
+  // Also trigger backend REST API call asynchronously if user token exists
+  if (bookingData.screeningId && Array.isArray(bookingData.seats)) {
+    const formattedSeats = bookingData.seats.map((seatKey) => {
+      const [r, s] = seatKey.split('-').map(Number)
+      return { rowNum: r, seatNum: s }
+    })
+    createBookingApi({
+      screeningId: bookingData.screeningId,
+      seats: formattedSeats,
+      pointsToRedeem: bookingData.pointsRedeemed || 0,
+    }).catch(() => {})
+  }
+
   return newBooking
 }
 
@@ -162,9 +96,13 @@ export function cancelBooking(bookingId) {
  * Calculate user loyalty stats dynamically from bookings and base points.
  * Points are awarded immediately upon purchasing/booking a ticket.
  */
-export function calculateLoyaltyStats(user, bookings) {
-  const userBookings = user?.email
-    ? bookings.filter((b) => b.customerEmail === user.email)
+export function calculateLoyaltyStats(user, bookings = []) {
+  const userBookings = (user?.email || user?.username)
+    ? bookings.filter(
+        (b) =>
+          (user.email && (b.customerEmail === user.email || b.username === user.email)) ||
+          (user.username && (b.customerEmail === user.username || b.username === user.username))
+      )
     : []
 
   // Total spent on active and completed bookings
@@ -172,14 +110,8 @@ export function calculateLoyaltyStats(user, bookings) {
     .filter((b) => b.status !== 'CANCELLED')
     .reduce((sum, b) => sum + (b.finalTotal || 0), 0)
 
-  // Net points earned across valid (active + completed) bookings
-  const netEarnedFromBookings = userBookings
-    .filter((b) => b.status !== 'CANCELLED')
-    .reduce((sum, b) => sum + (b.earnedPoints || 0) - (b.pointsRedeemed || 0), 0)
-
-  // Base starting points (0 for new users) + net points from bookings
-  const basePoints = user?.loyaltyPoints ?? 0
-  const points = Math.max(0, basePoints + netEarnedFromBookings)
+  // Current balance from user profile (source of truth)
+  const points = Math.max(0, user?.loyaltyPoints ?? 0)
 
   // Dynamic Tier calculation based on accumulated points:
   // BRONZE: 0 - 499 poena

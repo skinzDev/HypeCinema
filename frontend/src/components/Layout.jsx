@@ -63,6 +63,16 @@ export default function Layout() {
             <CalendarDays />
           </NavLink>
 
+          <NavLink
+            to="/reservations"
+            className={({ isActive }) =>
+              `sidebar-nav-item ${isActive ? 'active' : ''}`
+            }
+            data-tooltip="Moje karte"
+          >
+            <Ticket />
+          </NavLink>
+
           {isAdmin() && (
             <NavLink
               to="/admin"

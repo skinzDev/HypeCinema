@@ -25,6 +25,7 @@ import {
 import { getMovieById, getScreeningById } from '../data/movies'
 import { addBooking } from '../data/bookings'
 import { useAuth } from '../context/AuthContext'
+import { createBookingApi, addGlobalOccupiedSeats } from '../services/api'
 import Button from '../components/Button'
 import InputField from '../components/InputField'
 
@@ -158,7 +159,9 @@ export default function CheckoutPage() {
   }
 
   const formatDate = (dateStr) => {
-    const d = new Date(dateStr)
+    if (!dateStr) return ''
+    const parts = dateStr.split('-').map(Number)
+    const d = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(dateStr)
     const days = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun',
@@ -168,7 +171,9 @@ export default function CheckoutPage() {
   }
 
   const formatDateLong = (dateStr) => {
-    const d = new Date(dateStr)
+    if (!dateStr) return ''
+    const parts = dateStr.split('-').map(Number)
+    const d = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(dateStr)
     const days = ['Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota']
     const months = [
       'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
@@ -229,13 +234,29 @@ export default function CheckoutPage() {
   const handlePayment = async () => {
     setIsProcessing(true)
 
-    // Simulate payment processing delay
-    await new Promise((resolve) => setTimeout(resolve, 2200))
+    // Parse seats into rowNum and seatNum integers
+    const seatsPayload = sortedSeats.map((seatStr) => {
+      const [r, s] = seatStr.split('-')
+      return { rowNum: parseInt(r, 10), seatNum: parseInt(s, 10) }
+    })
 
-    const ref = generateBookingRef()
+    const bookingReq = {
+      screeningId: screening.id,
+      seats: seatsPayload,
+      pointsToRedeem: discount || 0,
+    }
+
+    let apiResult = null
+    try {
+      apiResult = await createBookingApi(bookingReq)
+    } catch (e) {
+      console.warn('API createBooking failed, falling back to local state', e)
+    }
+
+    const ref = apiResult?.bookingReference || generateBookingRef()
     setBookingRef(ref)
 
-    // Save booking to localStorage
+    // Synchronize booking locally
     addBooking({
       ref,
       movieId: movie.id,
@@ -250,22 +271,26 @@ export default function CheckoutPage() {
       pricePerTicket,
       baseTotal,
       pointsRedeemed: discount,
-      finalTotal,
-      earnedPoints: totalEarnedWithBonus,
+      finalTotal: apiResult ? apiResult.totalPrice : finalTotal,
+      earnedPoints: apiResult ? apiResult.pointsEarned : totalEarnedWithBonus,
       customerName: `${customerForm.firstName} ${customerForm.lastName}`,
       customerEmail: customerForm.email,
+      username: user?.username || customerForm.email,
     })
+
+    // Synchronize occupied seats globally
+    addGlobalOccupiedSeats(screening.id, sortedSeats)
 
     if (isAuthenticated()) {
       const currentPts = user?.loyaltyPoints ?? 0
-      const newPts = Math.max(0, currentPts - discount + totalEarnedWithBonus)
+      const earned = apiResult?.pointsEarned ?? totalEarnedWithBonus
+      const newPts = Math.max(0, currentPts - discount + earned)
       const newTier = newPts >= 1500 ? 'GOLD' : newPts >= 500 ? 'SILVER' : 'BRONZE'
       updateUserProfile({
         loyaltyPoints: newPts,
         tier: newTier,
       })
     }
-
 
     setIsProcessing(false)
     setStep(STEPS.CONFIRMATION)
@@ -464,112 +489,82 @@ export default function CheckoutPage() {
   const renderPaymentStep = () => (
     <div className="co-step-content">
       <h2 className="co-section-heading">Način plaćanja</h2>
-      <p className="co-section-sub">Izaberite željeni način plaćanja karte.</p>
+      <p className="co-section-sub">Izaberite željeni način plaćanja ulaznica.</p>
 
       {/* Payment method selector */}
       <div className="co-payment-methods">
-        <button
-          className={`co-payment-option ${paymentMethod === 'card' ? 'co-payment-option--active' : ''}`}
-          onClick={() => setPaymentMethod('card')}
+        <div
+          className="co-payment-option co-payment-option--active"
+          style={{ cursor: 'default' }}
         >
           <CreditCard size={22} />
           <div className="co-payment-option-info">
-            <span className="co-payment-option-title">Kartica</span>
-            <span className="co-payment-option-desc">Visa, Mastercard, Maestro</span>
+            <span className="co-payment-option-title">Platna kartica</span>
+            <span className="co-payment-option-desc">Visa, Mastercard, DinaCard</span>
           </div>
           <div className="co-payment-radio">
             <div className="co-payment-radio-inner" />
           </div>
-        </button>
-
-        <button
-          className={`co-payment-option ${paymentMethod === 'test' ? 'co-payment-option--active' : ''}`}
-          onClick={() => setPaymentMethod('test')}
-        >
-          <Zap size={22} />
-          <div className="co-payment-option-info">
-            <span className="co-payment-option-title">Test plaćanje</span>
-            <span className="co-payment-option-desc">Instant simulacija (demo)</span>
-          </div>
-          <div className="co-payment-radio">
-            <div className="co-payment-radio-inner" />
-          </div>
-        </button>
+        </div>
       </div>
 
-      {/* Card form (shown only for 'card' method) */}
-      {paymentMethod === 'card' && (
-        <div className="co-card-form">
-          <div className="co-card-form-header">
-            <Shield size={15} />
-            <span>Sigurna transakcija — SSL enkripcija</span>
-          </div>
-          <div className="co-card-input-group">
-            <label className="co-card-label">Broj kartice</label>
-            <div className="co-card-input-wrapper">
-              <CreditCard size={16} className="co-card-input-icon" />
-              <input
-                type="text"
-                className="co-card-input"
-                placeholder="4242 4242 4242 4242"
-                value={cardForm.number}
-                onChange={handleCardNumber}
-                maxLength={19}
-              />
-            </div>
-          </div>
-          <div className="co-card-row">
-            <div className="co-card-input-group">
-              <label className="co-card-label">Rok važenja</label>
-              <input
-                type="text"
-                className="co-card-input"
-                placeholder="MM/YY"
-                value={cardForm.expiry}
-                onChange={handleExpiry}
-                maxLength={5}
-              />
-            </div>
-            <div className="co-card-input-group">
-              <label className="co-card-label">CVC</label>
-              <input
-                type="text"
-                className="co-card-input"
-                placeholder="123"
-                value={cardForm.cvc}
-                onChange={handleCvc}
-                maxLength={3}
-              />
-            </div>
-          </div>
-          <div className="co-card-input-group">
-            <label className="co-card-label">Ime na kartici</label>
+      {/* Card form */}
+      <div className="co-card-form">
+        <div className="co-card-form-header">
+          <Shield size={15} />
+          <span>Sigurna 256-bitna SSL enkripcija platnog prometa</span>
+        </div>
+        <div className="co-card-input-group">
+          <label className="co-card-label">Broj kartice</label>
+          <div className="co-card-input-wrapper">
+            <CreditCard size={16} className="co-card-input-icon" />
             <input
               type="text"
               className="co-card-input"
-              placeholder="MARKO MARKOVIC"
-              value={cardForm.name}
-              onChange={(e) =>
-                setCardForm((prev) => ({ ...prev, name: e.target.value.toUpperCase() }))
-              }
+              placeholder="4532 1089 7432 9910"
+              value={cardForm.number}
+              onChange={handleCardNumber}
+              maxLength={19}
             />
           </div>
         </div>
-      )}
-
-      {/* Test payment notice */}
-      {paymentMethod === 'test' && (
-        <div className="co-test-notice">
-          <Zap size={16} />
-          <div>
-            <strong>Test režim plaćanja</strong>
-            <p>
-              Transakcija će biti simulirana bez stvarnog zaduženja. Ovo je demo
-              funkcionalnost za potrebe testiranja aplikacije.
-            </p>
+        <div className="co-card-row">
+          <div className="co-card-input-group">
+            <label className="co-card-label">Rok važenja</label>
+            <input
+              type="text"
+              className="co-card-input"
+              placeholder="MM/YY"
+              value={cardForm.expiry}
+              onChange={handleExpiry}
+              maxLength={5}
+            />
+          </div>
+          <div className="co-card-input-group">
+            <label className="co-card-label">CVC / CVV</label>
+            <input
+              type="text"
+              className="co-card-input"
+              placeholder="123"
+              value={cardForm.cvc}
+              onChange={handleCvc}
+              maxLength={3}
+            />
           </div>
         </div>
-      )}
+        <div className="co-card-input-group">
+          <label className="co-card-label">Ime na kartici</label>
+          <input
+            type="text"
+            className="co-card-input"
+            placeholder="PETAR PETROVIĆ"
+            value={cardForm.name}
+            onChange={(e) =>
+              setCardForm((prev) => ({ ...prev, name: e.target.value.toUpperCase() }))
+            }
+          />
+        </div>
+      </div>
 
       <div className="co-step-actions">
         <Button variant="secondary" size="lg" onClick={() => setStep(STEPS.REVIEW)}>
