@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 
 export default function InputField({
   label,
@@ -21,12 +21,15 @@ export default function InputField({
   return (
     <div className={`input-field ${error ? 'input-field--error' : ''} ${className}`.trim()}>
       {label && (
-        <label className="input-field-label">
-          {label} {required && <span className="text-red-500">*</span>}
+        <label className="input-field-label" style={error ? { color: '#ef4444' } : {}}>
+          {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
         </label>
       )}
-      <div className="input-field-wrapper">
-        {Icon && <Icon size={18} className="input-field-icon" />}
+      <div
+        className="input-field-wrapper"
+        style={error ? { borderColor: '#ef4444', boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.25)', background: 'rgba(239, 68, 68, 0.04)' } : {}}
+      >
+        {Icon && <Icon size={18} className="input-field-icon" style={error ? { color: '#ef4444' } : {}} />}
         <input
           type={inputType}
           name={name}
@@ -36,6 +39,21 @@ export default function InputField({
           className="input-field-input"
           {...props}
         />
+        {error && (
+          <div
+            title={error}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ef4444',
+              marginLeft: '6px',
+              flexShrink: 0,
+            }}
+          >
+            <AlertCircle size={20} />
+          </div>
+        )}
         {isPassword && (
           <button
             type="button"
@@ -47,7 +65,15 @@ export default function InputField({
           </button>
         )}
       </div>
-      {error && <span className="input-field-error">{error}</span>}
+      {error && (
+        <span
+          className="input-field-error"
+          style={{ color: '#ef4444', fontSize: '12px', fontWeight: '600', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}
+        >
+          {error}
+        </span>
+      )}
     </div>
   )
 }
+

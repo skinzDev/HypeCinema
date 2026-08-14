@@ -7,6 +7,7 @@ import SeatSelectionPage from './pages/SeatSelectionPage'
 import CheckoutPage from './pages/CheckoutPage'
 import ReservationsPage from './pages/ReservationsPage'
 import AdminPage from './pages/AdminPage'
+import SchedulePage from './pages/SchedulePage'
 
 export default function App() {
   return (
@@ -15,6 +16,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<HomePage />} />
+            <Route path="schedule" element={<SchedulePage />} />
+            <Route path="cinemas" element={<SchedulePage />} />
             <Route path="movies/:id" element={<MovieDetailsPage />} />
             <Route path="screening/:screeningId/seats" element={<SeatSelectionPage />} />
             <Route path="checkout" element={<CheckoutPage />} />
@@ -28,3 +31,4 @@ export default function App() {
     </AuthProvider>
   )
 }
+

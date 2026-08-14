@@ -1,19 +1,33 @@
 /**
- * Watchlist / Wishlist management using localStorage.
+ * Watchlist / Wishlist management using localStorage (per-user isolated).
  */
-const WATCHLIST_KEY = 'hype_cinema_watchlist'
+function getStorageKey(userEmailOrName) {
+  if (!userEmailOrName) {
+    try {
+      const stored = localStorage.getItem('user_profile')
+      if (stored) {
+        const u = JSON.parse(stored)
+        userEmailOrName = u.email || u.username
+      }
+    } catch (e) {}
+  }
+  return userEmailOrName ? `hype_cinema_watchlist_${userEmailOrName}` : 'hype_cinema_watchlist_guest'
+}
 
-export function getWatchlist() {
+export function getWatchlist(userEmailOrName = null) {
   try {
-    const raw = localStorage.getItem(WATCHLIST_KEY)
-    return raw ? JSON.parse(raw) : [1, 2] // Default 2 movies in demo watchlist
+    const key = getStorageKey(userEmailOrName)
+    const raw = localStorage.getItem(key)
+    if (!raw) return []
+    return JSON.parse(raw)
   } catch (err) {
-    return [1, 2]
+    return []
   }
 }
 
-export function toggleWatchlist(movieId) {
-  const current = getWatchlist()
+export function toggleWatchlist(movieId, userEmailOrName = null) {
+  const key = getStorageKey(userEmailOrName)
+  const current = getWatchlist(userEmailOrName)
   const idNum = Number(movieId)
   let updated
   if (current.includes(idNum)) {
@@ -21,11 +35,12 @@ export function toggleWatchlist(movieId) {
   } else {
     updated = [...current, idNum]
   }
-  localStorage.setItem(WATCHLIST_KEY, JSON.stringify(updated))
+  localStorage.setItem(key, JSON.stringify(updated))
   return updated
 }
 
-export function isInWatchlist(movieId) {
-  const current = getWatchlist()
+export function isInWatchlist(movieId, userEmailOrName = null) {
+  const current = getWatchlist(userEmailOrName)
   return current.includes(Number(movieId))
 }
+

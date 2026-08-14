@@ -163,9 +163,9 @@ export function cancelBooking(bookingId) {
  * Points are awarded immediately upon purchasing/booking a ticket.
  */
 export function calculateLoyaltyStats(user, bookings) {
-  const userBookings = bookings.filter(
-    (b) => !user?.email || b.customerEmail === user.email || b.customerName?.includes(user.firstName)
-  )
+  const userBookings = user?.email
+    ? bookings.filter((b) => b.customerEmail === user.email)
+    : []
 
   // Total spent on active and completed bookings
   const totalSpent = userBookings
@@ -177,11 +177,14 @@ export function calculateLoyaltyStats(user, bookings) {
     .filter((b) => b.status !== 'CANCELLED')
     .reduce((sum, b) => sum + (b.earnedPoints || 0) - (b.pointsRedeemed || 0), 0)
 
-  // Base starting points (default 250 for demo) + net points from bookings
-  const basePoints = user?.loyaltyPoints ?? 250
+  // Base starting points (0 for new users) + net points from bookings
+  const basePoints = user?.loyaltyPoints ?? 0
   const points = Math.max(0, basePoints + netEarnedFromBookings)
 
-  // Dynamic Tier calculation based on accumulated points
+  // Dynamic Tier calculation based on accumulated points:
+  // BRONZE: 0 - 499 poena
+  // SILVER: 500 - 1499 poena
+  // GOLD: 1500+ poena
   const tier = points >= 1500 ? 'GOLD' : points >= 500 ? 'SILVER' : 'BRONZE'
 
   const activeTicketsCount = userBookings.filter((b) => b.status === 'ACTIVE').length
@@ -225,3 +228,4 @@ export function calculateLoyaltyStats(user, bookings) {
     progressPercent,
   }
 }
+

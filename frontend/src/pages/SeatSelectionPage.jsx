@@ -53,7 +53,7 @@ export default function SeatSelectionPage() {
   const baseTotal = selectedSeats.length * (screening?.price ?? 0)
   const discount = Math.min(pointsToRedeem, baseTotal) // 1 poen = 1 RSD
   const finalTotal = baseTotal - discount
-  const earnedPoints = Math.floor(finalTotal / 100) * 10
+  const earnedPoints = Math.floor(finalTotal / 50)
 
   // Tier bonus
   const tierBonus =

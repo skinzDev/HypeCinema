@@ -63,16 +63,19 @@ export default function Layout() {
             <CalendarDays />
           </NavLink>
 
-          <NavLink
-            to="/admin"
-            className={({ isActive }) =>
-              `sidebar-nav-item ${isActive ? 'active' : ''}`
-            }
-            data-tooltip="Admin Panel"
-          >
-            <Shield />
-          </NavLink>
+          {isAdmin() && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `sidebar-nav-item ${isActive ? 'active' : ''}`
+              }
+              data-tooltip="Admin Panel"
+            >
+              <Shield />
+            </NavLink>
+          )}
         </nav>
+
 
         <div className="sidebar-bottom">
           {isAuthenticated() ? (

@@ -16,9 +16,12 @@ import { getMovieById, getScreeningsForMovie } from '../data/movies'
 import { isInWatchlist, toggleWatchlist } from '../data/watchlist'
 import Button from '../components/Button'
 
+import { useAuth } from '../context/AuthContext'
+
 export default function MovieDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const outletContext = useOutletContext() || {}
   const { handleOpenAuth, showToast } = outletContext
 
@@ -26,11 +29,20 @@ export default function MovieDetailsPage() {
   const groupedScreenings = useMemo(() => getScreeningsForMovie(id), [id])
   const dates = Object.keys(groupedScreenings)
 
-  const [selectedDate, setSelectedDate] = useState(dates[0] || '')
-  const [inWatchlist, setInWatchlist] = useState(() => isInWatchlist(id))
+  const [selectedDate, setSelectedDate] = useState(() => dates[0] || '')
+  const activeDate = selectedDate || dates[0] || ''
+
+  const userIdent = user?.email || user?.username
+  const [inWatchlist, setInWatchlist] = useState(() => isInWatchlist(id, userIdent))
 
   const handleToggleWatchlist = () => {
-    const updated = toggleWatchlist(id)
+    if (!user) {
+      if (showToast) showToast('Prijavite se na nalog da biste dodali film u listu želja.', 'info')
+      if (handleOpenAuth) handleOpenAuth('login')
+      return
+    }
+
+    const updated = toggleWatchlist(id, userIdent)
     const isSaved = updated.includes(Number(id))
     setInWatchlist(isSaved)
     if (showToast) {
@@ -58,7 +70,8 @@ export default function MovieDetailsPage() {
     )
   }
 
-  const currentScreenings = groupedScreenings[selectedDate] || []
+  const currentScreenings = groupedScreenings[activeDate] || []
+
 
   const formatDateLabel = (dateStr) => {
     const d = new Date(dateStr)
@@ -180,9 +193,10 @@ export default function MovieDetailsPage() {
                 return (
                   <button
                     key={dateStr}
-                    className={`md-date-chip ${selectedDate === dateStr ? 'active' : ''}`}
+                    className={`md-date-chip ${activeDate === dateStr ? 'active' : ''}`}
                     onClick={() => setSelectedDate(dateStr)}
                   >
+
                     <span className="md-date-chip-day">{dayName}</span>
                     <span className="md-date-chip-date">{dateFormatted}</span>
                   </button>

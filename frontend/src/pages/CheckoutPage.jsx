@@ -57,7 +57,8 @@ const STEPS = {
 export default function CheckoutPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, updateUserProfile } = useAuth()
+
   const qrCanvasRef = useRef(null)
 
   // Get data from navigation state (passed from SeatSelectionPage)
@@ -99,8 +100,9 @@ export default function CheckoutPage() {
   // Earned points
   const userTier = user?.tier ?? 'BRONZE'
   const tierBonus = userTier === 'GOLD' ? 0.1 : userTier === 'SILVER' ? 0.05 : 0
-  const earnedPoints = Math.floor(finalTotal / 100) * 10
+  const earnedPoints = Math.floor(finalTotal / 50)
   const totalEarnedWithBonus = Math.floor(earnedPoints * (1 + tierBonus))
+
 
   // Sorted seats for display
   const sortedSeats = useMemo(
@@ -253,6 +255,17 @@ export default function CheckoutPage() {
       customerName: `${customerForm.firstName} ${customerForm.lastName}`,
       customerEmail: customerForm.email,
     })
+
+    if (isAuthenticated()) {
+      const currentPts = user?.loyaltyPoints ?? 0
+      const newPts = Math.max(0, currentPts - discount + totalEarnedWithBonus)
+      const newTier = newPts >= 1500 ? 'GOLD' : newPts >= 500 ? 'SILVER' : 'BRONZE'
+      updateUserProfile({
+        loyaltyPoints: newPts,
+        tier: newTier,
+      })
+    }
+
 
     setIsProcessing(false)
     setStep(STEPS.CONFIRMATION)

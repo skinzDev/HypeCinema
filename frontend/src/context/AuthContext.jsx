@@ -17,22 +17,21 @@ export function AuthProvider({ children }) {
   }
 
   const defaultProfile = {
-    username: 'andrija_m',
-    role: 'USER',
-    firstName: 'Andrija',
-    lastName: 'Milovanovic',
-    email: 'aandrijq@gmail.com',
+    username: 'korisnik',
+    role: 'ROLE_USER',
+    firstName: 'Korisnik',
+    lastName: '',
+    email: 'korisnik@hypecinema.rs',
     city: 'Beograd',
-    address: 'Bulevar Mihajla Pupina 10',
-    birthDate: '15.05.1998',
-    phone: '+381 64 123 4567',
-    loyaltyPoints: 1450,
-    tier: 'SILVER',
+    address: '',
+    birthDate: '',
+    phone: '',
+    loyaltyPoints: 0,
+    tier: 'BRONZE',
   }
 
   const [user, setUser] = useState(() => {
-    const saved = getStoredProfile()
-    return saved || defaultProfile
+    return getStoredProfile() || null
   })
 
   useEffect(() => {
@@ -41,17 +40,17 @@ export function AuthProvider({ children }) {
         const decoded = jwtDecode(token)
         const saved = getStoredProfile() || {}
         setUser({
-          username: decoded.sub || 'andrija_m',
-          role: decoded.role || 'USER',
-          firstName: decoded.firstName || saved.firstName || 'Andrija',
-          lastName: decoded.lastName || saved.lastName || 'Milovanovic',
-          email: decoded.email || saved.email || 'aandrijq@gmail.com',
+          username: decoded.sub || saved.username || 'korisnik',
+          role: decoded.role || decoded.roles || saved.role || 'ROLE_USER',
+          firstName: decoded.firstName || saved.firstName || 'Korisnik',
+          lastName: decoded.lastName || saved.lastName || '',
+          email: decoded.email || saved.email || 'korisnik@hypecinema.rs',
           city: decoded.city || saved.city || 'Beograd',
-          address: decoded.address || saved.address || 'Bulevar Mihajla Pupina 10',
-          birthDate: decoded.birthDate || saved.birthDate || '15.05.1998',
-          phone: decoded.phone || saved.phone || '+381 64 123 4567',
-          loyaltyPoints: decoded.loyaltyPoints ?? saved.loyaltyPoints ?? 1450,
-          tier: decoded.tier || saved.tier || 'SILVER',
+          address: decoded.address || saved.address || '',
+          birthDate: decoded.birthDate || saved.birthDate || '',
+          phone: decoded.phone || saved.phone || '',
+          loyaltyPoints: decoded.loyaltyPoints ?? saved.loyaltyPoints ?? 0,
+          tier: decoded.tier || saved.tier || 'BRONZE',
         })
       } catch (err) {
         console.error('Invalid token', err)
@@ -69,11 +68,68 @@ export function AuthProvider({ children }) {
 
   const updateUserProfile = (updatedFields) => {
     setUser((prev) => {
-      const newUser = { ...prev, ...updatedFields }
+      const newUser = { ...(prev || {}), ...updatedFields }
       localStorage.setItem('user_profile', JSON.stringify(newUser))
+      if (newUser.username || newUser.email) {
+        try {
+          const registered = JSON.parse(localStorage.getItem('registered_users') || '{}')
+          if (newUser.username) registered[newUser.username.toLowerCase()] = newUser
+          if (newUser.email) registered[newUser.email.toLowerCase()] = newUser
+          localStorage.setItem('registered_users', JSON.stringify(registered))
+        } catch (e) {
+          console.error('Error saving to registered_users', e)
+        }
+      }
       return newUser
     })
   }
+
+  const getRegisteredUser = (usernameOrEmail) => {
+    try {
+      const registered = JSON.parse(localStorage.getItem('registered_users') || '{}')
+      const key = (usernameOrEmail || '').trim().toLowerCase()
+      if (registered[key]) return registered[key]
+
+      if (key === 'admin' || key === 'admin@hypecinema.rs') {
+        return {
+          username: 'admin',
+          password: 'admin',
+          role: 'ROLE_ADMIN',
+          firstName: 'Admin',
+          lastName: 'Administrator',
+          email: 'admin@hypecinema.rs',
+          city: 'Beograd',
+          address: 'Knez Mihailova 1',
+          birthDate: '01.01.1990',
+          phone: '+381 11 100 200',
+          loyaltyPoints: 0,
+          tier: 'BRONZE',
+        }
+      }
+
+      if (key === 'andrija_m' || key === 'aandrijq@gmail.com') {
+        return {
+          username: 'andrija_m',
+          password: '123456',
+          role: 'ROLE_USER',
+          firstName: 'Andrija',
+          lastName: 'Milovanovic',
+          email: 'aandrijq@gmail.com',
+          city: 'Beograd',
+          address: 'Bulevar Mihajla Pupina 10',
+          birthDate: '15.05.1998',
+          phone: '+381 64 123 4567',
+          loyaltyPoints: 0,
+          tier: 'BRONZE',
+        }
+      }
+
+      return null
+    } catch (e) {
+      return null
+    }
+  }
+
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -85,7 +141,7 @@ export function AuthProvider({ children }) {
   const loginAsAdmin = () => {
     const adminUser = {
       username: 'admin',
-      role: 'ADMIN',
+      role: 'ROLE_ADMIN',
       firstName: 'Admin',
       lastName: 'Administrator',
       email: 'admin@hypecinema.rs',
@@ -93,17 +149,16 @@ export function AuthProvider({ children }) {
       address: 'Knez Mihailova 1',
       birthDate: '01.01.1990',
       phone: '+381 11 100 200',
-      loyaltyPoints: 9999,
-      tier: 'GOLD',
+      loyaltyPoints: 0,
+      tier: 'BRONZE',
     }
-    setUser(adminUser)
-    localStorage.setItem('user_profile', JSON.stringify(adminUser))
+    updateUserProfile(adminUser)
   }
 
   const loginAsDemoUser = () => {
     const demoUser = {
       username: 'andrija_m',
-      role: 'USER',
+      role: 'ROLE_USER',
       firstName: 'Andrija',
       lastName: 'Milovanovic',
       email: 'aandrijq@gmail.com',
@@ -111,15 +166,17 @@ export function AuthProvider({ children }) {
       address: 'Bulevar Mihajla Pupina 10',
       birthDate: '15.05.1998',
       phone: '+381 64 123 4567',
-      loyaltyPoints: 1450,
-      tier: 'SILVER',
+      loyaltyPoints: 0,
+      tier: 'BRONZE',
     }
-    setUser(demoUser)
-    localStorage.setItem('user_profile', JSON.stringify(demoUser))
+    updateUserProfile(demoUser)
   }
 
+
+
   const isAuthenticated = () => !!user || !!token
-  const isAdmin = () => user?.role === 'ADMIN'
+  const isAdmin = () => user?.role === 'ADMIN' || user?.role === 'ROLE_ADMIN'
+
 
   return (
     <AuthContext.Provider
@@ -130,11 +187,13 @@ export function AuthProvider({ children }) {
         loginAsAdmin,
         loginAsDemoUser,
         updateUserProfile,
+        getRegisteredUser,
         logout,
         isAuthenticated,
         isAdmin,
       }}
     >
+
       {children}
     </AuthContext.Provider>
   )

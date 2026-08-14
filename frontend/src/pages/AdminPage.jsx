@@ -204,32 +204,30 @@ export default function AdminPage() {
     )
   }, [bookings, searchQuery])
 
-  // Non-admin Access Banner
+  // Non-admin Access Protection
   if (!isAdmin()) {
     return (
       <div className="admin-page">
         <div className="admin-access-card">
-          <Shield size={48} className="admin-access-icon" />
-          <h2>Potreban Administrator Pristup</h2>
+          <Shield size={48} className="admin-access-icon" style={{ color: '#ef4444' }} />
+          <h2>Pristup Odbijen</h2>
           <p>
-            Stranica za upravljanje bioskopom (CRUD nad filmovima, zakazivanje projekcija i uvid u rezervacije) je rezervisana za administratore.
+            Stranica za upravljanje bioskopom (CRUD nad filmovima, zakazivanje projekcija i uvid u rezervacije) je rezervisana isključivo za ulogovane administratore.
           </p>
           <div className="admin-access-actions">
             <Button
               variant="primary"
               size="lg"
-              onClick={() => {
-                loginAsAdmin()
-                if (showToast) showToast('Prijavljeni ste kao Administrator!', 'success')
-              }}
+              onClick={() => window.location.href = '/'}
             >
-              <UserCheck size={18} /> Prijavi se kao Admin (Demo)
+              Vrati se na početnu stranicu
             </Button>
           </div>
         </div>
       </div>
     )
   }
+
 
   return (
     <div className="admin-page">

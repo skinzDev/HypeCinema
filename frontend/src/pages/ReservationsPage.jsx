@@ -119,28 +119,39 @@ export default function ReservationsPage() {
   // Load data on mount
   useEffect(() => {
     setBookings(getStoredBookings())
-    setWatchlistIds(getWatchlist())
-  }, [])
+    setWatchlistIds(getWatchlist(user?.email || user?.username))
+  }, [user])
+
+  // Filter bookings belonging strictly to active user
+  const userBookings = useMemo(() => {
+    if (!user) return []
+    return bookings.filter(
+      (b) =>
+        (user.email && b.customerEmail === user.email) ||
+        (user.username && (b.customerEmail === user.username || b.username === user.username))
+    )
+  }, [user, bookings])
 
   // Loyalty calculations
   const stats = useMemo(() => {
-    return calculateLoyaltyStats(user, bookings)
-  }, [user, bookings])
+    return calculateLoyaltyStats(user, userBookings)
+  }, [user, userBookings])
 
   // Active tickets (only ACTIVE status for scanning)
   const activeTickets = useMemo(() => {
-    return bookings.filter((b) => b.status === 'ACTIVE')
-  }, [bookings])
+    return userBookings.filter((b) => b.status === 'ACTIVE')
+  }, [userBookings])
 
   // Completed past transactions (for watched history table)
   const completedTransactions = useMemo(() => {
-    return bookings.filter((b) => b.status === 'COMPLETED')
-  }, [bookings])
+    return userBookings.filter((b) => b.status === 'COMPLETED')
+  }, [userBookings])
 
   // Movies in watchlist
   const watchlistMovies = useMemo(() => {
     return moviesData.filter((m) => watchlistIds.includes(m.id))
   }, [watchlistIds])
+
 
   // QR canvas renderer
   useEffect(() => {
@@ -189,12 +200,13 @@ export default function ReservationsPage() {
 
   const handleRemoveFromWatchlist = (e, movieId) => {
     e.stopPropagation()
-    const updated = toggleWatchlist(movieId)
+    const updated = toggleWatchlist(movieId, user?.email || user?.username)
     setWatchlistIds(updated)
     if (showToast) {
       showToast('Film je uklonjen iz liste želja', 'info')
     }
   }
+
 
   const handleCopyRef = (ref) => {
     navigator.clipboard.writeText(ref)
@@ -256,9 +268,32 @@ export default function ReservationsPage() {
     }
   }
 
+  if (!user) {
+    return (
+      <div className="cine-profile-page">
+        <div className="admin-access-card" style={{ margin: '60px auto', maxWidth: '480px', textAlign: 'center' }}>
+          <User size={56} className="admin-access-icon" style={{ color: 'var(--color-accent-primary)' }} />
+          <h2 style={{ marginTop: '16px', fontSize: '1.5rem', fontWeight: '600' }}>Potrebna je Prijava na Nalog</h2>
+          <p style={{ color: 'var(--color-text-secondary)', marginTop: '8px', marginBottom: '24px', lineHeight: '1.5' }}>
+            Za pristup vašem profilu, pregled kupljenih ulaznica, HypeClub poena i liste želja morate biti prijavljeni na nalog.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <Button variant="primary" size="lg" onClick={() => handleOpenAuth && handleOpenAuth('login')}>
+              Prijavi se
+            </Button>
+            <Button variant="secondary" size="lg" onClick={() => handleOpenAuth && handleOpenAuth('register')}>
+              Kreiraj nalog
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="cine-profile-page">
       <div className="cine-profile-container">
+
         {/* Left Navigation Sidebar */}
         <aside className="cine-profile-sidebar">
           <nav className="cine-profile-menu">
