@@ -65,7 +65,7 @@ public class ScreeningServiceImpl implements ScreeningService {
         CinemaHall hall = cinemaHallRepository.findById(request.getHallId())
                 .orElseThrow(() -> new RuntimeException("Sala nije pronađena sa ID-em: " + request.getHallId()));
 
-        Screening screening = new Screening(movie, hall, request.getStartTime(), request.getTicketPrice());
+        Screening screening = new Screening(movie, hall, request.getStartTime(), request.getTicketPrice(), request.getCinemaId());
         return screeningRepository.save(screening);
     }
 

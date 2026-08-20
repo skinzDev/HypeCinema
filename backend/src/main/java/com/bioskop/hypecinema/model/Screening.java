@@ -30,14 +30,22 @@ public class Screening {
     @Column(name = "ticket_price", nullable = false)
     private Double ticketPrice;
 
+    @Column(name = "cinema_id", length = 32)
+    private String cinemaId = "BEOGRAD";
+
     public Screening() {
     }
 
     public Screening(Movie movie, CinemaHall hall, LocalDateTime startTime, Double ticketPrice) {
+        this(movie, hall, startTime, ticketPrice, "BEOGRAD");
+    }
+
+    public Screening(Movie movie, CinemaHall hall, LocalDateTime startTime, Double ticketPrice, String cinemaId) {
         this.movie = movie;
         this.hall = hall;
         this.startTime = startTime;
         this.ticketPrice = ticketPrice;
+        this.cinemaId = cinemaId != null ? cinemaId : "BEOGRAD";
     }
 
     // Getters and Setters
@@ -80,5 +88,13 @@ public class Screening {
 
     public void setTicketPrice(Double ticketPrice) {
         this.ticketPrice = ticketPrice;
+    }
+
+    public String getCinemaId() {
+        return cinemaId;
+    }
+
+    public void setCinemaId(String cinemaId) {
+        this.cinemaId = cinemaId;
     }
 }

@@ -202,27 +202,34 @@ public class DataInitializer implements CommandLineRunner {
             }
 
             movieRepository.saveAll(moviesToSave);
-            System.out.println(">>> Svi filmovi uspešno sinhronizovani i sačuvani u H2 bazu.");
+            System.out.println(">>> Svi filmovi uspešno sinhronizovani i sačuvani u SQLite bazu.");
         }
 
         // 4. Seed Screenings matching Frontend dates & halls
         if (screeningRepository.count() < 10) {
             LocalDateTime baseTime = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0);
             List<Movie> allMovies = movieRepository.findAll();
+            String[] cinemas = {"BEOGRAD", "NOVI_SAD", "NIS", "KRAGUJEVAC"};
+            CinemaHall[] halls = {hall1, hall2, hall3};
+            double[] prices = {900.0, 700.0, 1200.0};
 
             for (Movie movie : allMovies) {
                 if (movie.getStatus() == MovieStatus.NOW_SHOWING) {
-                    // Check if screenings for this movie already exist
                     if (screeningRepository.findByMovieId(movie.getId()).isEmpty()) {
-                        screeningRepository.save(new Screening(movie, hall1, baseTime.plusHours(2), 900.0));
-                        screeningRepository.save(new Screening(movie, hall2, baseTime.plusHours(5), 700.0));
-                        screeningRepository.save(new Screening(movie, hall3, baseTime.plusHours(8), 1200.0));
-                        screeningRepository.save(new Screening(movie, hall1, baseTime.plusDays(1).plusHours(4), 900.0));
-                        screeningRepository.save(new Screening(movie, hall2, baseTime.plusDays(1).plusHours(7), 700.0));
+                        for (int i = 0; i < cinemas.length; i++) {
+                            CinemaHall hall = halls[i % halls.length];
+                            screeningRepository.save(new Screening(
+                                    movie, hall, baseTime.plusHours(2L + i), prices[i % prices.length], cinemas[i]));
+                            screeningRepository.save(new Screening(
+                                    movie, halls[(i + 1) % halls.length],
+                                    baseTime.plusDays(1).plusHours(4L + i),
+                                    prices[(i + 1) % prices.length],
+                                    cinemas[i]));
+                        }
                     }
                 }
             }
-            System.out.println(">>> Projekcije uspešno sinhronizovane sa salama i filmovima.");
+            System.out.println(">>> Projekcije uspešno sinhronizovane sa salama, lokacijama i filmovima (SQLite).");
         }
     }
 }

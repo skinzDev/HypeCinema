@@ -27,7 +27,7 @@ Sistem omogućava interaktivnu selekciju sedišta u realnom vremenu, upravljanje
 - **Radni okvir:** Spring Boot 3.x
 - **Bezbednost:** Spring Security, JWT (JSON Web Token) za stateless autentifikaciju i autorizaciju zasnovanu na ulogama (RBAC)
 - **Rad sa podacima:** Spring Data JPA, Hibernate ORM
-- **Baza podataka:** H2 Database Engine (fajl-bazirana perzistencija u `./backend/data/hypecinemadb`)
+- **Baza podataka:** SQLite (fajl `./backend/data/hypecinema.db`)
 - **Validacija:** Jakarta Validation API
 
 ### Klijent (Frontend)
@@ -233,10 +233,9 @@ Pre započinjanja instalacije, uverite se da na svom sistemu imate instalirane s
 
 Nakon uspešnog pokretanja:
 - Backend server će biti dostupan na adresi: `http://localhost:8080`
-- Konzola za nadgledanje i upravljanje H2 bazom podataka se pokreće na adresi: `http://localhost:8080/h2-console`
-  - **JDBC URL:** `jdbc:h2:file:./data/hypecinemadb`
-  - **Username:** `sa`
-  - **Password:** *(ostaviti prazno polje)*
+- SQLite baza se kreira u: `backend/data/hypecinema.db`
+  - Pregled (opciono): `sqlite3 ./data/hypecinema.db "SELECT id, title FROM movies;"`
+  - Ili otvorite fajl u DB Browser for SQLite
 
 ---
 

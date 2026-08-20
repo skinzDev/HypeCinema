@@ -17,14 +17,21 @@ public class ScreeningRequestDTO {
     @NotNull
     private Double ticketPrice;
 
+    private String cinemaId;
+
     public ScreeningRequestDTO() {
     }
 
     public ScreeningRequestDTO(Long movieId, Long hallId, LocalDateTime startTime, Double ticketPrice) {
+        this(movieId, hallId, startTime, ticketPrice, "BEOGRAD");
+    }
+
+    public ScreeningRequestDTO(Long movieId, Long hallId, LocalDateTime startTime, Double ticketPrice, String cinemaId) {
         this.movieId = movieId;
         this.hallId = hallId;
         this.startTime = startTime;
         this.ticketPrice = ticketPrice;
+        this.cinemaId = cinemaId;
     }
 
     public Long getMovieId() {
@@ -57,5 +64,13 @@ public class ScreeningRequestDTO {
 
     public void setTicketPrice(Double ticketPrice) {
         this.ticketPrice = ticketPrice;
+    }
+
+    public String getCinemaId() {
+        return cinemaId;
+    }
+
+    public void setCinemaId(String cinemaId) {
+        this.cinemaId = cinemaId;
     }
 }

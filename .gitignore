@@ -47,8 +47,12 @@ backend/target/
 *.db
 *.sqlite
 *.sqlite3
+*.mv.db
+*.trace.db
 h2-data/
 backend/h2-data/
+backend/data/
+
 uploads/
 frontend/public/uploads/
 

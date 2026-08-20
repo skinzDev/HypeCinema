@@ -390,6 +390,7 @@ export async function createScreeningApi(screeningData) {
     hallId: Number(resolvedHallId),
     startTime: startTimeISO,
     ticketPrice: Number(screeningData.price || screeningData.ticketPrice || 800),
+    cinemaId: screeningData.cinemaId || 'BEOGRAD',
   }
 
   try {
